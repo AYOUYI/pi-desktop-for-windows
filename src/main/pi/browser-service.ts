@@ -72,6 +72,7 @@ export class BrowserService {
 		})
 		this.win.contentView.addChildView(view)
 		view.setBounds(this.rect)
+		view.setBackgroundColor('#141419')
 		this.updateVisibility()
 		this.view = view
 		return view
@@ -82,7 +83,7 @@ export class BrowserService {
 		const view = this.ensureView()
 		this.updateVisibility()
 		if (open && !view.webContents.getURL()) {
-			void view.webContents.loadURL('about:blank').then(() => this.emit())
+			void view.webContents.loadURL(BrowserService.startPageUrl()).then(() => this.emit())
 		}
 		this.emit()
 	}
@@ -206,11 +207,32 @@ export class BrowserService {
 
 	/** 注入系统提示 Guidelines：让模型理解内嵌浏览器的存在与使用方式 */
 	private static readonly GUIDELINES = [
-		'本应用内置一个用户实时可见的浏览器面板。凡是涉及网页的任务（打开网站、登录、填表、抓取页面内容），优先使用 browser_* 工具，不要用 bash 启动外部浏览器。',
+		'本应用内置用户实时可见的浏览器面板。打开网站、登录、扫码、填表、抓取页面等交互式网页任务，默认使用 browser_* 工具在内嵌浏览器中完成（用户能实时看到页面并配合扫码等交互）。',
+		'只有用户明确要求使用某个 CLI/技能时才走 CLI 流程；CLI 缺失或失败时回退到内嵌浏览器。',
 		'你只能看见内嵌浏览器：bash 等命令在桌面弹出的外部窗口你无法看到，也不要假设能看到。',
 		'导航或点击后调用 browser_screenshot 查看页面（截图以图像返回，你可以直接看到），据此决定下一步操作。',
 		'定位元素优先用可见文本（browser_click 的 text 参数），其次用 CSS selector；填表用 browser_type。'
 	]
+
+	/** 面板空状态起始页（避免 about:blank 在深色主题下渲染为纯黑） */
+	private static startPageUrl(): string {
+		const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#141419;color:#dcdde4;font-family:'Segoe UI','Microsoft YaHei',sans-serif}
+.box{text-align:center;max-width:420px}
+.logo{width:56px;height:56px;border-radius:14px;background:#7c6cf0;color:#fff;font-size:30px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
+h1{font-size:17px;font-weight:600;margin:0 0 10px}
+p{font-size:13px;color:#8b8d9c;line-height:1.7;margin:0 0 18px}
+.links{display:flex;gap:10px;justify-content:center}
+a{color:#dcdde4;text-decoration:none;font-size:12.5px;border:1px solid #2c2d38;border-radius:16px;padding:6px 14px}
+a:hover{border-color:#7c6cf0}
+</style></head><body><div class="box">
+<div class="logo">π</div>
+<h1>内嵌浏览器已就绪</h1>
+<p>在上方地址栏输入网址回车打开；<br>或直接让 agent 用 browser_* 工具操作此浏览器（导航、点击、截图、填表）。</p>
+<div class="links"><a href="https://www.baidu.com">百度</a><a href="https://www.bing.com">必应</a><a href="https://www.douyin.com">抖音</a></div>
+</div></body></html>`
+		return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+	}
 
 	tools(): ToolDefinition[] {
 		const svc = this
