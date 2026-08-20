@@ -142,6 +142,9 @@ async function bootstrap(): Promise<void> {
 	ipcMain.handle('browser:setOpen', (_event, open: boolean) => {
 		browser?.setOpen(open)
 	})
+	ipcMain.handle('browser:setSuppressed', (_event, suppressed: boolean) => {
+		browser?.setSuppressed(suppressed)
+	})
 	ipcMain.handle('browser:setRect', (_event, rect: { x: number; y: number; width: number; height: number }) => {
 		browser?.setRect(rect)
 	})

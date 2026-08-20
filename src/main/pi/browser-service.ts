@@ -19,6 +19,8 @@ export class BrowserService {
 	private win: BrowserWindow | null = null
 	private rect = { x: 0, y: 0, width: 0, height: 0 }
 	private open = false
+	/** 模态弹窗打开时压制原生视图（原生层在渲染页面之上，会遮挡 overlay） */
+	private suppressed = false
 	private listeners: BrowserStateListener[] = []
 
 	attach(win: BrowserWindow): void {
@@ -58,7 +60,7 @@ export class BrowserService {
 		})
 		this.win.contentView.addChildView(view)
 		view.setBounds(this.rect)
-		view.setVisible(this.open)
+		this.updateVisibility()
 		this.view = view
 		return view
 	}
@@ -66,11 +68,20 @@ export class BrowserService {
 	setOpen(open: boolean): void {
 		this.open = open
 		const view = this.ensureView()
-		view.setVisible(open)
+		this.updateVisibility()
 		if (open && !view.webContents.getURL()) {
 			void view.webContents.loadURL('about:blank').then(() => this.emit())
 		}
 		this.emit()
+	}
+
+	setSuppressed(suppressed: boolean): void {
+		this.suppressed = suppressed
+		this.updateVisibility()
+	}
+
+	private updateVisibility(): void {
+		this.view?.setVisible(this.open && !this.suppressed)
 	}
 
 	isOpen(): boolean {

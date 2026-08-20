@@ -69,6 +69,11 @@ export function App() {
 	const [settingsOpen, setSettingsOpen] = useState(false)
 	const browserOpen = useSessionStore((s) => s.browserOpen)
 
+	// 原生浏览器视图层级高于页面 overlay：弹窗打开期间隐藏它
+	useEffect(() => {
+		void window.piDesktop.browserSetSuppressed(settingsOpen)
+	}, [settingsOpen])
+
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
 			applyEvent(payload.tabId, payload.event)

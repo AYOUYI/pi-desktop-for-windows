@@ -43,6 +43,7 @@ const api: PiDesktopApi = {
 	forkActiveSession: () => ipcRenderer.invoke('session:fork') as Promise<WireSessionInfo>,
 	exportActiveSessionHtml: () => ipcRenderer.invoke('session:exportHtml') as Promise<string | null>,
 	browserSetOpen: (open: boolean) => ipcRenderer.invoke('browser:setOpen', open),
+	browserSetSuppressed: (suppressed: boolean) => ipcRenderer.invoke('browser:setSuppressed', suppressed),
 	browserSetRect: (rect: { x: number; y: number; width: number; height: number }) =>
 		ipcRenderer.invoke('browser:setRect', rect),
 	browserNavigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
