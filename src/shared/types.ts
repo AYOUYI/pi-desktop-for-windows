@@ -33,6 +33,7 @@ export interface WireTranscriptItem {
 	thinking: string
 	status: 'streaming' | 'complete' | 'error' | 'aborted' | 'running'
 	usage?: WireItemUsage
+	modelUsed?: string
 	toolCallId?: string
 	toolName?: string
 	resultText?: string

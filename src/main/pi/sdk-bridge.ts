@@ -50,6 +50,7 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 				text: joinType('text', 'text'),
 				thinking: joinType('thinking', 'thinking'),
 				status: 'complete',
+				...(typeof m.model === 'string' && m.model ? { modelUsed: m.model } : {}),
 				...(usage
 					? {
 							usage: {

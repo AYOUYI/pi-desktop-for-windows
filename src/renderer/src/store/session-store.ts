@@ -32,6 +32,8 @@ export interface ChatItem {
 	status: ItemStatus
 	/** provider-side error message when status === 'error' */
 	errorText?: string
+	/** model id actually used for this assistant turn (from the message itself) */
+	modelUsed?: string
 	usage?: ItemUsage
 	toolCallId?: string
 	toolName?: string
@@ -536,10 +538,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					const usage = extractUsage(message)
 					const rawError = (message as { errorMessage?: unknown }).errorMessage
 					const errorText = typeof rawError === 'string' && rawError ? rawError : undefined
+					const rawModel = (message as { model?: unknown }).model
+					const modelUsed = typeof rawModel === 'string' && rawModel ? rawModel : undefined
 					updateItems((items) =>
 						items.map((it) =>
 							it.kind === 'assistant' && (it.id === id || it.status === 'streaming')
-								? { ...it, text: text || it.text, status, errorText: errorText ?? it.errorText, usage: usage ?? it.usage }
+								? {
+										...it,
+										text: text || it.text,
+										status,
+										errorText: errorText ?? it.errorText,
+										modelUsed: modelUsed ?? it.modelUsed,
+										usage: usage ?? it.usage
+									}
 								: it
 						)
 					)

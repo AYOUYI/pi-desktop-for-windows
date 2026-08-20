@@ -52,11 +52,12 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						</ReactMarkdown>
 					)}
 				</div>
-				{item.usage && (
+				{(item.usage || item.modelUsed) && (
 					<div className="msg-usage">
-						<span>↑ {formatTokens(item.usage.input)}</span>
-						<span>↓ {formatTokens(item.usage.output)}</span>
-						{item.usage.costTotal > 0 && <span>${item.usage.costTotal.toFixed(4)}</span>}
+						{item.modelUsed && <span title="本轮实际使用的模型">模型：{item.modelUsed}</span>}
+						{item.usage && <span>↑ {formatTokens(item.usage.input)}</span>}
+						{item.usage && <span>↓ {formatTokens(item.usage.output)}</span>}
+						{item.usage && item.usage.costTotal > 0 && <span>${item.usage.costTotal.toFixed(4)}</span>}
 					</div>
 				)}
 			</div>
