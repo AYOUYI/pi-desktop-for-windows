@@ -42,14 +42,23 @@ export function Sidebar() {
 	const changeModel = async (id: string) => {
 		setModelId(id)
 		if (cwd) {
-			await window.piDesktop.setModel(id)
+			try {
+				await window.piDesktop.setModel(id)
+				useSessionStore.getState().setNotice(null)
+			} catch (err) {
+				useSessionStore.getState().setNotice(`切换模型失败：${String(err).replace(/^Error:\s*/, '')}`)
+			}
 		}
 	}
 
 	const changeThinking = async (level: WireThinkingLevel) => {
 		setThinkingLevel(level)
 		if (cwd) {
-			await window.piDesktop.setThinking(level)
+			try {
+				await window.piDesktop.setThinking(level)
+			} catch (err) {
+				useSessionStore.getState().setNotice(`设置推理级别失败：${String(err).replace(/^Error:\s*/, '')}`)
+			}
 		}
 	}
 
