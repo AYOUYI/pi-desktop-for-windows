@@ -57,6 +57,8 @@ const api: PiDesktopApi = {
 		return () => ipcRenderer.removeListener('browser:state', listener)
 	},
 	getAppBehavior: () => ipcRenderer.invoke('app:getBehavior') as Promise<WireAppBehavior>,
+	themePickBackground: () => ipcRenderer.invoke('theme:pickBackground') as Promise<{ name: string } | null>,
+	themeClearBackground: () => ipcRenderer.invoke('theme:clearBackground'),
 	setAppBehavior: (patch: Partial<WireAppBehavior>) =>
 		ipcRenderer.invoke('app:setBehavior', patch) as Promise<WireAppBehavior>,
 

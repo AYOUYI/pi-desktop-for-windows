@@ -102,6 +102,8 @@ export interface PiDesktopApi {
 	browserOnState(cb: (state: WireBrowserState) => void): () => void
 	getAppBehavior(): Promise<WireAppBehavior>
 	setAppBehavior(patch: Partial<WireAppBehavior>): Promise<WireAppBehavior>
+	themePickBackground(): Promise<{ name: string } | null>
+	themeClearBackground(): Promise<void>
 
 	// ---- Settings ----
 	listProviders(): Promise<WireProviderStatus[]>

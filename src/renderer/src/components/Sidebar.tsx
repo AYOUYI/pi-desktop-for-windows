@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSessionStore } from '../store/session-store'
 import { isRecentlyModified, relativeTime } from '../lib/time'
+import { getHiddenWorkspaces, hideWorkspace, onHiddenWorkspacesChanged } from '../lib/hidden-workspaces'
 
 function sessionDisplayTitle(firstMessage: string, name: string | null): string {
 	if (name) return name
@@ -19,6 +20,23 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 	const activateTab = useSessionStore((s) => s.activateTab)
 	const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 	const [opening, setOpening] = useState(false)
+	const [hidden, setHidden] = useState<string[]>(() => getHiddenWorkspaces())
+	const [menu, setMenu] = useState<{ cwd: string; x: number; y: number } | null>(null)
+
+	useEffect(() => onHiddenWorkspacesChanged(() => setHidden(getHiddenWorkspaces())), [])
+
+	useEffect(() => {
+		if (!menu) return
+		const close = () => setMenu(null)
+		window.addEventListener('mousedown', close)
+		window.addEventListener('blur', close)
+		return () => {
+			window.removeEventListener('mousedown', close)
+			window.removeEventListener('blur', close)
+		}
+	}, [menu])
+
+	const visibleWorkspaces = workspaces.filter((w) => !hidden.includes(w.cwd))
 
 	const openWorkspace = async () => {
 		if (opening) return
@@ -52,14 +70,17 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 			</button>
 
 			<div className="sidebar-sessions">
-				{workspaces.length === 0 && (
+				{visibleWorkspaces.length === 0 && (
 					<div className="sidebar-empty">还没有会话。打开一个工作区，或从磁盘中恢复 pi CLI 的历史会话。</div>
 				)}
-				{workspaces.map((g) => {
+				{visibleWorkspaces.map((g) => {
 					const isCollapsed = collapsed[g.cwd] ?? false
 					return (
 						<div key={g.cwd} className="ws-group">
-							<div className="ws-header">
+							<div className="ws-header" onContextMenu={(e) => {
+								e.preventDefault()
+								setMenu({ cwd: g.cwd, x: e.clientX, y: e.clientY })
+							}}>
 								<button
 									type="button"
 									className="ws-toggle"
@@ -143,6 +164,22 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 			<button type="button" className="settings-btn" onClick={onOpenSettings}>
 				⚙ 设置
 			</button>
+
+			{menu && (
+				<div className="ctx-menu" style={{ left: menu.x, top: menu.y }}>
+					<button
+						type="button"
+						className="ctx-item"
+						onClick={() => {
+							hideWorkspace(menu.cwd)
+							setMenu(null)
+						}}
+					>
+						从列表中移除该工作区
+					</button>
+					<div className="ctx-hint">仅隐藏显示，不删除任何文件或会话</div>
+				</div>
+			)}
 		</aside>
 	)
 }

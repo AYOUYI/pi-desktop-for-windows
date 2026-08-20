@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, shell } from 'electron'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, protocol, Tray, shell } from 'electron'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SdkBridge } from './pi/sdk-bridge'
 import { SettingsService } from './pi/settings-service'
 import { SessionsService } from './pi/sessions-service'
@@ -9,7 +9,14 @@ import { BrowserService } from './pi/browser-service'
 import { registerIpc } from './ipc'
 import type { WireAppBehavior } from '../shared/types'
 
+// 背景图协议：pibg://local/<file> → userData/bg/<file>（需在 app ready 前注册）
+protocol.registerSchemesAsPrivileged([{ scheme: 'pibg', privileges: { supportFetchAPI: true } }])
+
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
+
+function bgDir(): string {
+	return join(app.getPath('userData'), 'bg')
+}
 
 let mainWindow: BrowserWindow | null = null
 let bridge: SdkBridge | null = null
@@ -139,6 +146,55 @@ async function bootstrap(): Promise<void> {
 		const next = { ...loadBehavior(), ...patch }
 		saveBehavior(next)
 		return next
+	})
+
+	// ---- 主题背景图 ----
+	protocol.handle('pibg', async (request) => {
+		try {
+			const name = decodeURIComponent(new URL(request.url).pathname.replace(/^\/+/, ''))
+			if (!name || name.includes('..') || name.includes('/') || name.includes('\\')) {
+				return new Response('bad request', { status: 400 })
+			}
+			const file = join(bgDir(), name)
+			if (!existsSync(file)) return new Response('not found', { status: 404 })
+			return await net.fetch(pathToFileURL(file).toString())
+		} catch {
+			return new Response('error', { status: 500 })
+		}
+	})
+
+	ipcMain.handle('theme:pickBackground', async () => {
+		const win = mainWindow
+		const result = await dialog.showOpenDialog(win!, {
+			title: '选择背景图片',
+			properties: ['openFile'],
+			filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }]
+		})
+		if (result.canceled || result.filePaths.length === 0) return null
+		mkdirSync(bgDir(), { recursive: true })
+		// 清掉旧背景，统一命名
+		for (const f of readdirSync(bgDir())) {
+			try {
+				rmSync(join(bgDir(), f))
+			} catch {
+				/* ignore */
+			}
+		}
+		const src = result.filePaths[0]
+		const ext = (src.split('.').pop() ?? 'jpg').toLowerCase()
+		const name = `background.${ext}`
+		copyFileSync(src, join(bgDir(), name))
+		return { name }
+	})
+
+	ipcMain.handle('theme:clearBackground', () => {
+		try {
+			if (existsSync(bgDir())) {
+				for (const f of readdirSync(bgDir())) rmSync(join(bgDir(), f))
+			}
+		} catch {
+			/* ignore */
+		}
 	})
 
 	// ---- 内嵌浏览器 ----

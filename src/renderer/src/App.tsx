@@ -96,20 +96,23 @@ export function App() {
 	}, [applyEvent, setNotice, setReady])
 
 	return (
-		<div className="app-shell">
-			<Sidebar onOpenSettings={() => setSettingsOpen(true)} />
-			<div className="main-column">
-				<TabBar />
-				<MainHeader />
-				<div className="main-body">
-					<div className="chat-column">
-						<ChatView />
-						<Composer />
+		<>
+			<div className="app-bg" />
+			<div className="app-shell">
+				<Sidebar onOpenSettings={() => setSettingsOpen(true)} />
+				<div className="main-column">
+					<TabBar />
+					<MainHeader />
+					<div className="main-body">
+						<div className="chat-column">
+							<ChatView />
+							<Composer />
+						</div>
+						{browserOpen && <BrowserPanel />}
 					</div>
-					{browserOpen && <BrowserPanel />}
 				</div>
+				{settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 			</div>
-			{settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
-		</div>
+		</>
 	)
 }

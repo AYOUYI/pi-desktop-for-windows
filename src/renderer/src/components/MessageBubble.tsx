@@ -1,7 +1,29 @@
+import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatItem } from '../store/session-store'
 import { CodeBlock } from './CodeBlock'
+
+function CopyButton({ text }: { text: string }) {
+	const [copied, setCopied] = useState(false)
+	return (
+		<button
+			type="button"
+			className="msg-copy"
+			onClick={async () => {
+				try {
+					await navigator.clipboard.writeText(text)
+					setCopied(true)
+					setTimeout(() => setCopied(false), 1500)
+				} catch {
+					/* clipboard unavailable */
+				}
+			}}
+		>
+			{copied ? '已复制' : '复制'}
+		</button>
+	)
+}
 
 function formatTokens(n: number): string {
 	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -27,6 +49,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 			<div className="msg msg-user">
 				<div className="msg-role">你</div>
 				<div className="msg-body user-text">{item.text}</div>
+				{item.text && <CopyButton text={item.text} />}
 			</div>
 		)
 	}
@@ -60,6 +83,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						{item.usage && item.usage.costTotal > 0 && <span>${item.usage.costTotal.toFixed(4)}</span>}
 					</div>
 				)}
+				{item.text && item.status !== 'streaming' && <CopyButton text={item.text} />}
 			</div>
 		)
 	}

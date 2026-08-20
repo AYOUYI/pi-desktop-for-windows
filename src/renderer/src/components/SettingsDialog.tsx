@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSessionStore } from '../store/session-store'
 import { ACCENTS, applyPrefs, loadPrefs, savePrefs, type AccentKey, type ThemePrefs } from '../lib/theme'
+import { getHiddenWorkspaces, setHiddenWorkspaces, onHiddenWorkspacesChanged } from '../lib/hidden-workspaces'
 import type {
 	WireCustomProviderModel,
 	WireCustomProviderRequest,
@@ -81,14 +82,16 @@ function GeneralTab() {
 				<span className="field-label">默认推理级别</span>
 				<select
 					className="select"
-					value={settings.defaultThinkingLevel ?? 'medium'}
+					value={
+					settings.defaultThinkingLevel && ['minimal', 'low', 'medium'].includes(settings.defaultThinkingLevel)
+						? settings.defaultThinkingLevel
+						: 'medium'
+				}
 					onChange={(e) => void save({ defaultThinkingLevel: e.target.value as WireGeneralSettings['defaultThinkingLevel'] })}
 				>
-					{['minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((l) => (
-						<option key={l} value={l}>
-							{l}
-						</option>
-					))}
+					<option value="minimal">关</option>
+					<option value="low">低</option>
+					<option value="medium">中</option>
 				</select>
 			</label>
 			<label className="field">
@@ -368,9 +371,16 @@ function CustomProviderForm({ onDone }: { onDone: () => void }) {
 function AppearanceTab() {
 	const [prefs, setPrefs] = useState<ThemePrefs>(() => loadPrefs())
 	const [behavior, setBehavior] = useState<{ closeToTray: boolean } | null>(null)
+	const [hidden, setHidden] = useState<string[]>([])
+	const workspaces = useSessionStore((s) => s.workspaces)
 
 	useEffect(() => {
 		void window.piDesktop.getAppBehavior().then(setBehavior)
+	}, [])
+
+	useEffect(() => {
+		setHidden(getHiddenWorkspaces())
+		return onHiddenWorkspacesChanged(() => setHidden(getHiddenWorkspaces()))
 	}, [])
 
 	const update = (patch: Partial<ThemePrefs>) => {
@@ -384,6 +394,18 @@ function AppearanceTab() {
 		const next = await window.piDesktop.setAppBehavior(patch)
 		setBehavior(next)
 	}
+
+	const pickBg = async () => {
+		const result = await window.piDesktop.themePickBackground()
+		if (result) update({ bgName: result.name })
+	}
+
+	const clearBg = async () => {
+		await window.piDesktop.themeClearBackground()
+		update({ bgName: null })
+	}
+
+	const hiddenGroups = workspaces.filter((w) => hidden.includes(w.cwd))
 
 	return (
 		<div className="settings-form">
@@ -432,6 +454,33 @@ function AppearanceTab() {
 					onChange={(e) => update({ fontSize: Number(e.target.value) })}
 				/>
 			</label>
+			<div className="field">
+				<span className="field-label">自定义背景（毛玻璃）</span>
+				<div className="settings-actions">
+					<button type="button" className="btn-secondary" onClick={() => void pickBg()}>
+						{prefs.bgName ? '更换背景图片' : '选择背景图片'}
+					</button>
+					{prefs.bgName && (
+						<button type="button" className="btn-ghost" onClick={() => void clearBg()}>
+							清除背景
+						</button>
+					)}
+				</div>
+				{prefs.bgName && (
+					<label className="field" style={{ marginTop: 10 }}>
+						<span className="field-label">毛玻璃模糊度：{prefs.bgBlur}px</span>
+						<input
+							type="range"
+							min={0}
+							max={40}
+							step={1}
+							value={prefs.bgBlur}
+							onChange={(e) => update({ bgBlur: Number(e.target.value) })}
+						/>
+					</label>
+				)}
+				<div className="settings-hint">背景图存储在本机（Electron userData/bg），主界面面板呈半透明毛玻璃效果。</div>
+			</div>
 			{behavior && (
 				<label className="field">
 					<span className="field-label">窗口行为</span>
@@ -444,6 +493,25 @@ function AppearanceTab() {
 						<span>关闭按钮最小化到系统托盘（取消勾选则直接退出）</span>
 					</label>
 				</label>
+			)}
+			{hiddenGroups.length > 0 && (
+				<div className="field">
+					<span className="field-label">已隐藏的工作区</span>
+					{hiddenGroups.map((w) => (
+						<div key={w.cwd} className="field-row">
+							<span className="input readonly" title={w.cwd}>
+								{w.cwd}
+							</span>
+							<button
+								type="button"
+								className="btn-secondary"
+								onClick={() => setHiddenWorkspaces(hidden.filter((c) => c !== w.cwd))}
+							>
+								恢复显示
+							</button>
+						</div>
+					))}
+				</div>
 			)}
 			<div className="settings-hint">主题与字号仅影响本应用，保存在本地。</div>
 		</div>

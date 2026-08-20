@@ -11,6 +11,9 @@ const THINKING_LABEL: Record<WireThinkingLevel, string> = {
 	max: '思考：最大'
 }
 
+/** 面向用户只暴露三档；pi 内部级别仍完整兼容 */
+const THINKING_OPTIONS: WireThinkingLevel[] = ['minimal', 'low', 'medium']
+
 function ModelChip() {
 	const models = useSessionStore((s) => s.models)
 	const tab = useActiveTab()
@@ -94,7 +97,7 @@ function ThinkingChip() {
 			</button>
 			{open && (
 				<div className="chip-menu">
-					{(Object.keys(THINKING_LABEL) as WireThinkingLevel[]).map((level) => (
+					{THINKING_OPTIONS.map((level) => (
 						<button
 							key={level}
 							type="button"
