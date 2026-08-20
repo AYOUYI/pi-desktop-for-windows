@@ -44,6 +44,11 @@ const api: PiDesktopApi = {
 	exportActiveSessionHtml: () => ipcRenderer.invoke('session:exportHtml') as Promise<string | null>,
 	browserSetOpen: (open: boolean) => ipcRenderer.invoke('browser:setOpen', open),
 	browserSetSuppressed: (suppressed: boolean) => ipcRenderer.invoke('browser:setSuppressed', suppressed),
+	browserOnZoom: (cb: (dir: 1 | -1) => void) => {
+		const listener = (_e: Electron.IpcRendererEvent, dir: 1 | -1) => cb(dir)
+		ipcRenderer.on('browser:zoom', listener)
+		return () => ipcRenderer.removeListener('browser:zoom', listener)
+	},
 	browserSetRect: (rect: { x: number; y: number; width: number; height: number }) =>
 		ipcRenderer.invoke('browser:setRect', rect),
 	browserNavigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),

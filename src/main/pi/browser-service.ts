@@ -22,6 +22,7 @@ export class BrowserService {
 	/** 模态弹窗打开时压制原生视图（原生层在渲染页面之上，会遮挡 overlay） */
 	private suppressed = false
 	private listeners: BrowserStateListener[] = []
+	private zoomListeners: Array<(dir: 1 | -1) => void> = []
 
 	attach(win: BrowserWindow): void {
 		this.win = win
@@ -29,6 +30,11 @@ export class BrowserService {
 
 	onState(listener: BrowserStateListener): void {
 		this.listeners.push(listener)
+	}
+
+	/** Ctrl+滚轮（原生视图区的页面缩放请求）转为面板调宽信号 */
+	onZoom(listener: (dir: 1 | -1) => void): void {
+		this.zoomListeners.push(listener)
 	}
 
 	private emit(): void {
@@ -57,6 +63,12 @@ export class BrowserService {
 			// 新窗口请求在当前面板内打开
 			void view.webContents.loadURL(url)
 			return { action: 'deny' }
+		})
+		// Ctrl+滚轮不缩放页面，改为调整面板宽度
+		view.webContents.on('zoom-changed', (e, direction) => {
+			e.preventDefault()
+			const dir: 1 | -1 = direction === 'in' ? 1 : -1
+			for (const l of this.zoomListeners) l(dir)
 		})
 		this.win.contentView.addChildView(view)
 		view.setBounds(this.rect)

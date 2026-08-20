@@ -23,6 +23,33 @@ export function BrowserPanel() {
 	const [url, setUrl] = useState('')
 	const [width, setWidth] = useState<number>(() => loadWidth())
 	const dragging = useRef(false)
+	const widthRef = useRef(width)
+	widthRef.current = width
+
+	const applyWidth = (next: number) => {
+		const clamped = Math.min(1200, Math.max(MIN_WIDTH, Math.round(next)))
+		setWidth(clamped)
+		return clamped
+	}
+
+	// Ctrl+滚轮调宽：原生视图区经主进程 zoom-changed 转发，React 区用 wheel 监听
+	useEffect(() => {
+		const offZoom = window.piDesktop.browserOnZoom((dir) => {
+			const cur = widthRef.current || Math.round(window.innerWidth * 0.42)
+			localStorage.setItem(WIDTH_KEY, String(applyWidth(cur + dir * 60)))
+		})
+		const onWheel = (e: WheelEvent) => {
+			if (!e.ctrlKey) return
+			e.preventDefault()
+			const cur = widthRef.current || Math.round(window.innerWidth * 0.42)
+			localStorage.setItem(WIDTH_KEY, String(applyWidth(cur - Math.sign(e.deltaY) * 60)))
+		}
+		window.addEventListener('wheel', onWheel, { passive: false })
+		return () => {
+			offZoom()
+			window.removeEventListener('wheel', onWheel)
+		}
+	}, [])
 
 	// 拖拽调宽：以窗口右缘为锚点
 	useEffect(() => {

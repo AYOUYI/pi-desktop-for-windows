@@ -93,6 +93,7 @@ export interface PiDesktopApi {
 	exportActiveSessionHtml(): Promise<string | null>
 	browserSetOpen(open: boolean): Promise<void>
 	browserSetSuppressed(suppressed: boolean): Promise<void>
+	browserOnZoom(cb: (dir: 1 | -1) => void): () => void
 	browserSetRect(rect: { x: number; y: number; width: number; height: number }): Promise<void>
 	browserNavigate(url: string): Promise<string | undefined>
 	getAppBehavior(): Promise<WireAppBehavior>
