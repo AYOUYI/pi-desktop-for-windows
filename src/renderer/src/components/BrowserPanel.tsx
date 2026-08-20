@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSessionStore } from '../store/session-store'
 
 const WIDTH_KEY = 'pi-desktop:browser-width'
 const MIN_WIDTH = 320
@@ -15,41 +16,30 @@ function loadWidth(): number {
 
 /**
  * 内嵌浏览器面板：占位 div 的窗口坐标上报给主进程，
- * 原生 WebContentsView 覆盖在该区域上实时渲染页面。
- * 左缘拖拽条可调整宽度（持久化），原生视图随坐标上报自动对齐。
+ * 原生 WebContentsView（多标签，每个标签独立视图）覆盖在该区域上。
+ * 左缘拖拽条调整宽度；Ctrl+滚轮在页面内是正常缩放（原生默认行为）。
  */
 export function BrowserPanel() {
 	const holderRef = useRef<HTMLDivElement>(null)
 	const [url, setUrl] = useState('')
 	const [width, setWidth] = useState<number>(() => loadWidth())
 	const dragging = useRef(false)
-	const widthRef = useRef(width)
-	widthRef.current = width
+	const tabs = useSessionStore((s) => s.browserTabs)
+	const activeTabId = useSessionStore((s) => s.browserActiveTabId)
 
-	const applyWidth = (next: number) => {
-		const clamped = Math.min(1200, Math.max(MIN_WIDTH, Math.round(next)))
-		setWidth(clamped)
-		return clamped
-	}
-
-	// Ctrl+滚轮调宽：原生视图区经主进程 zoom-changed 转发，React 区用 wheel 监听
+	// 订阅主进程浏览器状态（标签增删/切换/导航）
 	useEffect(() => {
-		const offZoom = window.piDesktop.browserOnZoom((dir) => {
-			const cur = widthRef.current || Math.round(window.innerWidth * 0.42)
-			localStorage.setItem(WIDTH_KEY, String(applyWidth(cur + dir * 60)))
+		const off = window.piDesktop.browserOnState((state) => {
+			useSessionStore.getState().setBrowserState(state)
 		})
-		const onWheel = (e: WheelEvent) => {
-			if (!e.ctrlKey) return
-			e.preventDefault()
-			const cur = widthRef.current || Math.round(window.innerWidth * 0.42)
-			localStorage.setItem(WIDTH_KEY, String(applyWidth(cur - Math.sign(e.deltaY) * 60)))
-		}
-		window.addEventListener('wheel', onWheel, { passive: false })
-		return () => {
-			offZoom()
-			window.removeEventListener('wheel', onWheel)
-		}
+		return off
 	}, [])
+
+	// 活动标签变化时同步地址栏
+	useEffect(() => {
+		const active = tabs.find((t) => t.id === activeTabId)
+		if (active && !active.url.startsWith('data:')) setUrl(active.url)
+	}, [tabs, activeTabId])
 
 	// 拖拽调宽：以窗口右缘为锚点
 	useEffect(() => {
@@ -110,6 +100,40 @@ export function BrowserPanel() {
 					document.body.style.cursor = 'col-resize'
 				}}
 			/>
+			<div className="browser-tabs">
+				<div className="browser-tabs-list">
+					{tabs.map((t) => (
+						<button
+							key={t.id}
+							type="button"
+							className={t.id === activeTabId ? 'browser-tab active' : 'browser-tab'}
+							title={t.url}
+							onClick={() => void window.piDesktop.browserActivateTab(t.id)}
+						>
+							<span className="browser-tab-title">{t.title || '新标签页'}</span>
+							{tabs.length > 1 && (
+								<span
+									className="browser-tab-close"
+									onClick={(e) => {
+										e.stopPropagation()
+										void window.piDesktop.browserCloseTab(t.id)
+									}}
+								>
+									✕
+								</span>
+							)}
+						</button>
+					))}
+				</div>
+				<button
+					type="button"
+					className="browser-tab-new"
+					title="新建标签页"
+					onClick={() => void window.piDesktop.browserNewTab()}
+				>
+					＋
+				</button>
+			</div>
 			<div className="browser-bar">
 				<span className="browser-dot" />
 				<input

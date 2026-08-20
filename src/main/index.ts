@@ -128,6 +128,9 @@ async function bootstrap(): Promise<void> {
 	browser = new BrowserService()
 	bridge = new SdkBridge(browser)
 	await bridge.init()
+	browser.onState((state) => {
+		mainWindow?.webContents.send('browser:state', state)
+	})
 	const settings = new SettingsService(bridge.getRuntime()!)
 	registerIpc(() => mainWindow, bridge, settings, new SessionsService())
 
@@ -145,13 +148,20 @@ async function bootstrap(): Promise<void> {
 	ipcMain.handle('browser:setSuppressed', (_event, suppressed: boolean) => {
 		browser?.setSuppressed(suppressed)
 	})
-	browser?.onZoom((dir) => {
-		mainWindow?.webContents.send('browser:zoom', dir)
-	})
 	ipcMain.handle('browser:setRect', (_event, rect: { x: number; y: number; width: number; height: number }) => {
 		browser?.setRect(rect)
 	})
 	ipcMain.handle('browser:navigate', (_event, url: string) => browser?.navigate(url))
+	ipcMain.handle('browser:newTab', (_event, url?: string) => {
+		const tab = browser?.newTab(url)
+		return tab ? { id: tab.id, title: tab.title, url: tab.url } : null
+	})
+	ipcMain.handle('browser:activateTab', (_event, id: string) => {
+		browser?.activateTab(id)
+	})
+	ipcMain.handle('browser:closeTab', (_event, id: string) => {
+		browser?.closeTab(id)
+	})
 
 	if (isSmoke) {
 		// Headless verification: proves the ESM main bundle loads, the pi SDK

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
 	PiDesktopApi,
 	WireAppBehavior,
+	WireBrowserState,
 	WireCustomProviderRequest,
 	WireGeneralSettings,
 	WireGeneralSettingsPatch,
@@ -44,14 +45,17 @@ const api: PiDesktopApi = {
 	exportActiveSessionHtml: () => ipcRenderer.invoke('session:exportHtml') as Promise<string | null>,
 	browserSetOpen: (open: boolean) => ipcRenderer.invoke('browser:setOpen', open),
 	browserSetSuppressed: (suppressed: boolean) => ipcRenderer.invoke('browser:setSuppressed', suppressed),
-	browserOnZoom: (cb: (dir: 1 | -1) => void) => {
-		const listener = (_e: Electron.IpcRendererEvent, dir: 1 | -1) => cb(dir)
-		ipcRenderer.on('browser:zoom', listener)
-		return () => ipcRenderer.removeListener('browser:zoom', listener)
-	},
 	browserSetRect: (rect: { x: number; y: number; width: number; height: number }) =>
 		ipcRenderer.invoke('browser:setRect', rect),
 	browserNavigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
+	browserNewTab: (url?: string) => ipcRenderer.invoke('browser:newTab', url),
+	browserActivateTab: (id: string) => ipcRenderer.invoke('browser:activateTab', id),
+	browserCloseTab: (id: string) => ipcRenderer.invoke('browser:closeTab', id),
+	browserOnState: (cb: (state: WireBrowserState) => void) => {
+		const listener = (_e: Electron.IpcRendererEvent, state: WireBrowserState) => cb(state)
+		ipcRenderer.on('browser:state', listener)
+		return () => ipcRenderer.removeListener('browser:state', listener)
+	},
 	getAppBehavior: () => ipcRenderer.invoke('app:getBehavior') as Promise<WireAppBehavior>,
 	setAppBehavior: (patch: Partial<WireAppBehavior>) =>
 		ipcRenderer.invoke('app:setBehavior', patch) as Promise<WireAppBehavior>,

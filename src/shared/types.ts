@@ -93,9 +93,12 @@ export interface PiDesktopApi {
 	exportActiveSessionHtml(): Promise<string | null>
 	browserSetOpen(open: boolean): Promise<void>
 	browserSetSuppressed(suppressed: boolean): Promise<void>
-	browserOnZoom(cb: (dir: 1 | -1) => void): () => void
 	browserSetRect(rect: { x: number; y: number; width: number; height: number }): Promise<void>
 	browserNavigate(url: string): Promise<string | undefined>
+	browserNewTab(url?: string): Promise<WireBrowserTab | null>
+	browserActivateTab(id: string): Promise<void>
+	browserCloseTab(id: string): Promise<void>
+	browserOnState(cb: (state: WireBrowserState) => void): () => void
 	getAppBehavior(): Promise<WireAppBehavior>
 	setAppBehavior(patch: Partial<WireAppBehavior>): Promise<WireAppBehavior>
 
@@ -115,6 +118,18 @@ export interface PiDesktopApi {
 /** 应用自身行为设置（与 pi 配置无关，存于 Electron userData）。 */
 export interface WireAppBehavior {
 	closeToTray: boolean
+}
+
+export interface WireBrowserTab {
+	id: string
+	title: string
+	url: string
+}
+
+export interface WireBrowserState {
+	open: boolean
+	tabs: WireBrowserTab[]
+	activeTabId: string | null
 }
 
 export interface WireProviderStatus {

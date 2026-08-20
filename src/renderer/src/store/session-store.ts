@@ -5,7 +5,8 @@ import type {
 	WireModelInfo,
 	WireSessionInfo,
 	WireThinkingLevel,
-	WireWorkspaceGroup
+	WireWorkspaceGroup,
+	WireBrowserState
 } from '../../../shared/types'
 
 export type ItemStatus = 'streaming' | 'complete' | 'error' | 'aborted' | 'running'
@@ -66,11 +67,14 @@ interface SessionStore {
 	activeTabId: string | null
 	gitStats: WireGitStats | null
 	browserOpen: boolean
+	browserTabs: WireBrowserState['tabs']
+	browserActiveTabId: string | null
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
 	setModels(models: WireModelInfo[]): void
 	setBrowserOpen(open: boolean): Promise<void>
+	setBrowserState(state: WireBrowserState): void
 	loadWorkspaces(): Promise<void>
 	refreshGitStats(): Promise<void>
 	createTab(cwd: string): Promise<void>
@@ -203,6 +207,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	activeTabId: null,
 	gitStats: null,
 	browserOpen: false,
+	browserTabs: [],
+	browserActiveTabId: null,
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
@@ -212,6 +218,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 		set({ browserOpen: open })
 		await window.piDesktop.browserSetOpen(open)
 	},
+
+	setBrowserState: (state) =>
+		set({ browserOpen: state.open, browserTabs: state.tabs, browserActiveTabId: state.activeTabId }),
 
 	loadWorkspaces: async () => {
 		try {
