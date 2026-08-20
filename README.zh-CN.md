@@ -64,6 +64,8 @@ npm run dist       # NSIS 安装包 → release/Pi Desktop Setup <版本>.exe
 
 打包后的应用只在 asar 中保留主进程外置依赖（pi SDK 等）；渲染端库由 Vite 打进 bundle。
 
+推送 `v*` tag 会触发 GitHub Actions 工作流（`.github/workflows/release.yml`），在 `windows-latest` 上自动构建安装包并发布到 GitHub Releases。
+
 ### 自动更新
 
 打包版支持 generic feed 更新：启动前设置环境变量 `PIDESKTOP_UPDATE_URL`（指向 electron-builder `latest.yml` 所在目录的 URL）。未设置时更新逻辑完全不加载。

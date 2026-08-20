@@ -64,6 +64,8 @@ npm run dist       # NSIS installer → release/Pi Desktop Setup <version>.exe
 
 The packaged app keeps only main-process externals (pi SDK, etc.) in the asar; renderer libraries are bundled by Vite.
 
+Pushing a `v*` tag triggers the GitHub Actions workflow (`.github/workflows/release.yml`), which builds the installer on `windows-latest` and publishes it to GitHub Releases automatically.
+
 ### Auto-update
 
 Packaged builds support updates from a generic feed: set `PIDESKTOP_UPDATE_URL` (a URL serving electron-builder's `latest.yml`) before launching. When unset, the updater never loads.
