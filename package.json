@@ -1,0 +1,35 @@
+{
+	"name": "pi-desktop",
+	"productName": "Pi Desktop",
+	"version": "0.1.0",
+	"description": "Windows desktop client for the pi coding agent",
+	"main": "out/main/index.mjs",
+	"author": "pi-desktop contributors",
+	"license": "MIT",
+	"scripts": {
+		"dev": "electron-vite dev",
+		"build": "electron-vite build",
+		"preview": "electron-vite preview",
+		"typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+		"smoke": "electron-vite dev -- --smoke"
+	},
+	"dependencies": {
+		"@earendil-works/pi-ai": "^0.84.2",
+		"@earendil-works/pi-coding-agent": "0.84.2"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"@vitejs/plugin-react": "^5.0.0",
+		"electron": "^43.4.1",
+		"electron-vite": "^5.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-markdown": "^10.0.0",
+		"remark-gfm": "^4.0.0",
+		"typescript": "^5.9.0",
+		"vite": "^7.3.6",
+		"zustand": "^5.0.15"
+	}
+}
