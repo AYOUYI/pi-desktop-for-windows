@@ -23,6 +23,7 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 			role?: unknown
 			content?: unknown
 			usage?: Record<string, unknown>
+			model?: unknown
 			toolCallId?: unknown
 			toolName?: unknown
 			isError?: unknown
