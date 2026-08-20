@@ -4,6 +4,19 @@ import type { WireModelInfo, WireSessionInfo, WireThinkingLevel } from '../../..
 
 export type ItemStatus = 'streaming' | 'complete' | 'error' | 'aborted' | 'running'
 
+export interface ItemUsage {
+	input: number
+	output: number
+	totalTokens: number
+	costTotal: number
+}
+
+export interface SessionUsage {
+	turns: number
+	totalTokens: number
+	totalCost: number
+}
+
 export interface ChatItem {
 	id: string
 	kind: 'user' | 'assistant' | 'tool'
@@ -12,12 +25,25 @@ export interface ChatItem {
 	/** assistant thinking text */
 	thinking: string
 	status: ItemStatus
+	/** assistant per-message usage */
+	usage?: ItemUsage
 	/** tool fields */
 	toolCallId?: string
 	toolName?: string
 	argsPreview?: string
 	resultText?: string
 	isError?: boolean
+	/** file tools: target path; bash: command */
+	path?: string
+	command?: string
+	/** edit count badge */
+	edits?: number
+	/** bash exit code */
+	exitCode?: number | null
+	/** unified patch from edit details */
+	patch?: string
+	/** synthesized from write args at render time */
+	writeContent?: string
 }
 
 interface SessionStore {
@@ -29,6 +55,9 @@ interface SessionStore {
 	thinkingLevel: WireThinkingLevel
 	busy: boolean
 	items: ChatItem[]
+	usage: SessionUsage
+	/** increments on user send; ChatView follows bottom */
+	followSignal: number
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
@@ -78,7 +107,48 @@ function stopReason(message: unknown): string {
 	return ''
 }
 
-const THINNKING_LEVELS: WireThinkingLevel[] = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+function extractUsage(message: unknown): ItemUsage | undefined {
+	if (!message || typeof message !== 'object') return undefined
+	const usage = (message as { usage?: Record<string, unknown> }).usage
+	if (!usage || typeof usage !== 'object') return undefined
+	const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+	const cost = usage.cost as Record<string, unknown> | undefined
+	return {
+		input: num(usage.input),
+		output: num(usage.output),
+		totalTokens: num(usage.totalTokens),
+		costTotal: num(cost?.total)
+	}
+}
+
+function parseToolMeta(args: unknown): { path?: string; command?: string; edits?: number; writeContent?: string } {
+	if (!args || typeof args !== 'object') return {}
+	const a = args as Record<string, unknown>
+	const path = typeof a.path === 'string' ? a.path : typeof a.file_path === 'string' ? a.file_path : undefined
+	const command = typeof a.command === 'string' ? a.command : undefined
+	const edits = Array.isArray(a.edits) ? a.edits.length : undefined
+	const writeContent = typeof a.content === 'string' ? a.content : undefined
+	return { path, command, edits, writeContent }
+}
+
+/** Extract a unified patch from a tool result's details, if any. */
+function extractPatch(result: unknown): string | undefined {
+	if (!result || typeof result !== 'object') return undefined
+	const details = (result as { details?: Record<string, unknown> }).details
+	const patch = details?.patch
+	if (typeof patch === 'string' && patch.length > 0) return patch
+	return undefined
+}
+
+function extractExitCode(result: unknown): number | null | undefined {
+	if (!result || typeof result !== 'object') return undefined
+	const details = (result as { details?: Record<string, unknown> }).details
+	const code = details?.exitCode
+	if (typeof code === 'number') return code
+	return undefined
+}
+
+const THINKING_LEVELS: WireThinkingLevel[] = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max']
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
 	ready: false,
@@ -89,6 +159,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	thinkingLevel: 'medium',
 	busy: false,
 	items: [],
+	usage: { turns: 0, totalTokens: 0, totalCost: 0 },
+	followSignal: 0,
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
@@ -99,19 +171,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 			modelId: info.modelId,
 			thinkingLevel: info.thinkingLevel,
 			items: [],
+			usage: { turns: 0, totalTokens: 0, totalCost: 0 },
 			busy: false
 		}),
 	setModelId: (modelId) => set({ modelId }),
 	setThinkingLevel: (thinkingLevel) => set({ thinkingLevel }),
 
-	sendPrompt: (text) => {
+	sendPrompt: (text) =>
 		set((s) => ({
+			followSignal: s.followSignal + 1,
 			items: [...s.items, { id: `local-${Date.now()}`, kind: 'user', text, thinking: '', status: 'complete' }]
-		}))
-	},
+		})),
 
 	applyEvent: (event) => {
-		const state = get()
 		switch (event.type) {
 			case 'agent_start':
 				set({ busy: true })
@@ -121,9 +193,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 				set({ busy: false })
 				set((s) => ({
 					items: s.items.map((it) =>
-						it.status === 'streaming' || it.status === 'running'
-							? { ...it, status: it.status === 'streaming' ? 'complete' : 'complete' }
-							: it
+						it.status === 'streaming' || it.status === 'running' ? { ...it, status: 'complete' } : it
 					)
 				}))
 				break
@@ -169,6 +239,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 				const message = (event as { message: unknown }).message
 				const role = messageRole(message)
 				const text = messageText(message)
+
 				if (role === 'user') {
 					// Deduplicate against the optimistic local echo.
 					set((s) => {
@@ -188,13 +259,58 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					const reason = stopReason(message)
 					const status: ItemStatus =
 						reason === 'error' ? 'error' : reason === 'aborted' ? 'aborted' : 'complete'
+					const usage = extractUsage(message)
 					set((s) => ({
 						items: s.items.map((it) =>
 							it.kind === 'assistant' && (it.id === id || it.status === 'streaming')
-								? { ...it, text: text || it.text, status }
+								? { ...it, text: text || it.text, status, usage: usage ?? it.usage }
 								: it
-						)
+						),
+						usage: usage
+							? {
+									turns: s.usage.turns + 1,
+									totalTokens: s.usage.totalTokens + usage.totalTokens,
+									totalCost: s.usage.totalCost + usage.costTotal
+								}
+							: s.usage
 					}))
+				} else if (role === 'bashExecution') {
+					// Final bash record: command/output/exitCode. Attach to the matching
+					// running bash tool card, or surface as a standalone card (! commands).
+					const msg = message as { command?: string; output?: string; exitCode?: number; cancelled?: boolean }
+					const output = typeof msg.output === 'string' ? msg.output : ''
+					const exitCode = typeof msg.exitCode === 'number' ? msg.exitCode : null
+					const isError = exitCode !== null && exitCode !== 0
+					set((s) => {
+						const items = [...s.items]
+						for (let i = items.length - 1; i >= 0; i--) {
+							const it = items[i]
+							if (it.kind === 'tool' && it.toolName === 'bash' && it.status === 'running') {
+								if (msg.command && it.command !== msg.command) continue
+								items[i] = {
+									...it,
+									status: msg.cancelled ? 'aborted' : isError ? 'error' : 'complete',
+									resultText: output || it.resultText,
+									exitCode,
+									isError
+								}
+								return { items }
+							}
+						}
+						items.push({
+							id: `bash-${Date.now()}`,
+							kind: 'tool',
+							text: '',
+							thinking: '',
+							status: msg.cancelled ? 'aborted' : isError ? 'error' : 'complete',
+							toolName: 'bash',
+							command: msg.command,
+							resultText: output,
+							exitCode,
+							isError
+						})
+						return { items }
+					})
 				}
 				break
 			}
@@ -207,6 +323,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 				} catch {
 					argsPreview = String(e.args)
 				}
+				const meta = parseToolMeta(e.args)
 				set((s) => ({
 					items: [
 						...s.items,
@@ -218,7 +335,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 							status: 'running',
 							toolCallId: e.toolCallId,
 							toolName: e.toolName,
-							argsPreview
+							argsPreview,
+							...meta
 						}
 					]
 				}))
@@ -240,10 +358,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 			case 'tool_execution_end': {
 				const e = event as { toolCallId: string; result: unknown; isError: boolean }
 				const resultText = extractText(e.result) || (() => { try { return JSON.stringify(e.result) } catch { return '' } })()
+				const patch = extractPatch(e.result)
+				const exitCode = extractExitCode(e.result)
 				set((s) => ({
 					items: s.items.map((it) =>
 						it.kind === 'tool' && it.toolCallId === e.toolCallId
-							? { ...it, status: e.isError ? 'error' : 'complete', resultText, isError: e.isError }
+							? {
+									...it,
+									status: e.isError ? 'error' : 'complete',
+									resultText,
+									isError: e.isError,
+									patch: patch ?? it.patch,
+									exitCode: exitCode ?? it.exitCode
+								}
 							: it
 					)
 				}))
@@ -252,14 +379,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
 			case 'thinking_level_changed': {
 				const level = (event as { level?: unknown }).level
-				if (typeof level === 'string' && THINNKING_LEVELS.includes(level as WireThinkingLevel)) {
+				if (typeof level === 'string' && THINKING_LEVELS.includes(level as WireThinkingLevel)) {
 					set({ thinkingLevel: level as WireThinkingLevel })
 				}
 				break
 			}
 
 			default:
-				void state
+				void get
 				break
 		}
 	}

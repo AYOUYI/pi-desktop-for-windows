@@ -15,7 +15,11 @@
 	},
 	"dependencies": {
 		"@earendil-works/pi-ai": "^0.84.2",
-		"@earendil-works/pi-coding-agent": "0.84.2"
+		"@earendil-works/pi-coding-agent": "0.84.2",
+		"diff": "^9.0.0",
+		"react-diff-view": "^3.3.3",
+		"shiki": "^4.4.3",
+		"virtua": "^0.50.2"
 	},
 	"devDependencies": {
 		"@types/node": "^24.0.0",
