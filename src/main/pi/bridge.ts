@@ -34,6 +34,8 @@ export interface PiBridge {
 	listModels(): Promise<WireModelInfo[]>
 	createSession(options: CreateSessionOptions): Promise<WireSessionInfo>
 	openSession(options: OpenSessionOptions): Promise<WireSessionInfo>
+	forkSession(sourceTabId: string, newTabId: string): Promise<WireSessionInfo>
+	exportHtml(tabId: string, outputPath?: string): Promise<string>
 	prompt(tabId: string, text: string): void
 	steer(tabId: string, text: string): void
 	abort(tabId: string): void

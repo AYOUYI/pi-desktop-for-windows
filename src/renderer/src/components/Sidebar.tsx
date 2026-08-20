@@ -82,25 +82,55 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 							{!isCollapsed && (
 								<div className="ws-sessions">
 									{g.sessions.length === 0 && <div className="ws-empty">暂无会话</div>}
-									{g.sessions.map((s) => {
-										const tab = tabs.find((t) => t.sessionPath === s.sessionPath)
-										const isActive = tab?.tabId === activeTabId
-										return (
-											<button
-												key={s.sessionPath}
-												type="button"
-												className={isActive ? 'session-row active' : 'session-row'}
-												onClick={() => onSessionClick(s.cwd, s.sessionPath)}
-												title={s.cwd}
-											>
-												<span
-													className={isRecentlyModified(s.modified) ? 'session-dot modified' : 'session-dot'}
-												/>
-												<span className="session-title">{sessionDisplayTitle(s.firstMessage, s.name)}</span>
-												<span className="session-meta">{relativeTime(s.modified)}</span>
-											</button>
-										)
-									})}
+									{(() => {
+										// 分支树：fork 出的会话（parentSessionPath 指向组内会话）嵌套缩进展示
+										const byPath = new Map(g.sessions.map((s) => [s.sessionPath, s]))
+										const childrenOf = new Map<string, typeof g.sessions>()
+										const roots: typeof g.sessions = []
+										for (const s of g.sessions) {
+											const parent = s.parentSessionPath ? byPath.get(s.parentSessionPath) : undefined
+											if (parent) {
+												const list = childrenOf.get(parent.sessionPath) ?? []
+												list.push(s)
+												childrenOf.set(parent.sessionPath, list)
+											} else {
+												roots.push(s)
+											}
+										}
+										const rows: Array<{ s: (typeof g.sessions)[number]; depth: number }> = []
+										const walk = (list: typeof g.sessions, depth: number) => {
+											for (const s of list) {
+												rows.push({ s, depth })
+												walk(childrenOf.get(s.sessionPath) ?? [], depth + 1)
+											}
+										}
+										walk(roots, 0)
+										return rows.map(({ s, depth }) => {
+											const tab = tabs.find((t) => t.sessionPath === s.sessionPath)
+											const isActive = tab?.tabId === activeTabId
+											return (
+												<button
+													key={s.sessionPath}
+													type="button"
+													className={isActive ? 'session-row active' : 'session-row'}
+													style={depth > 0 ? { paddingLeft: 8 + depth * 14 } : undefined}
+													onClick={() => onSessionClick(s.cwd, s.sessionPath)}
+													title={s.cwd}
+												>
+													<span
+														className={
+															isRecentlyModified(s.modified) ? 'session-dot modified' : 'session-dot'
+														}
+													/>
+													{depth > 0 && <span className="session-fork">⑂</span>}
+													<span className="session-title">
+														{sessionDisplayTitle(s.firstMessage, s.name)}
+													</span>
+													<span className="session-meta">{relativeTime(s.modified)}</span>
+												</button>
+											)
+										})
+									})()}
 								</div>
 							)}
 						</div>

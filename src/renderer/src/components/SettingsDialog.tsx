@@ -367,12 +367,22 @@ function CustomProviderForm({ onDone }: { onDone: () => void }) {
 
 function AppearanceTab() {
 	const [prefs, setPrefs] = useState<ThemePrefs>(() => loadPrefs())
+	const [behavior, setBehavior] = useState<{ closeToTray: boolean } | null>(null)
+
+	useEffect(() => {
+		void window.piDesktop.getAppBehavior().then(setBehavior)
+	}, [])
 
 	const update = (patch: Partial<ThemePrefs>) => {
 		const next = { ...prefs, ...patch }
 		setPrefs(next)
 		applyPrefs(next)
 		savePrefs(next)
+	}
+
+	const updateBehavior = async (patch: Partial<{ closeToTray: boolean }>) => {
+		const next = await window.piDesktop.setAppBehavior(patch)
+		setBehavior(next)
 	}
 
 	return (
@@ -422,7 +432,20 @@ function AppearanceTab() {
 					onChange={(e) => update({ fontSize: Number(e.target.value) })}
 				/>
 			</label>
-			<div className="settings-hint">仅影响本应用外观，保存在本地。</div>
+			{behavior && (
+				<label className="field">
+					<span className="field-label">窗口行为</span>
+					<label className="check-row">
+						<input
+							type="checkbox"
+							checked={behavior.closeToTray}
+							onChange={(e) => void updateBehavior({ closeToTray: e.target.checked })}
+						/>
+						<span>关闭按钮最小化到系统托盘（取消勾选则直接退出）</span>
+					</label>
+				</label>
+			)}
+			<div className="settings-hint">主题与字号仅影响本应用，保存在本地。</div>
 		</div>
 	)
 }

@@ -1,0 +1,34 @@
+appId: com.pidesktop.app
+productName: Pi Desktop
+copyright: Copyright © 2026 pi-desktop contributors
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - build/icon.png
+  - package.json
+
+# pi SDK 是纯 JS，保持 asar 打包即可
+asar: true
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Pi Desktop
+
+# 国内网络走镜像拉取 Electron 运行时
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/

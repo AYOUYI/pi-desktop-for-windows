@@ -89,6 +89,10 @@ export interface PiDesktopApi {
 	listWorkspaces(): Promise<WireWorkspaceGroup[]>
 	refreshWorkspaceSessions(cwd: string): Promise<WireSessionListItem[]>
 	gitStats(cwd: string): Promise<WireGitStats | null>
+	forkActiveSession(): Promise<WireSessionInfo>
+	exportActiveSessionHtml(): Promise<string | null>
+	getAppBehavior(): Promise<WireAppBehavior>
+	setAppBehavior(patch: Partial<WireAppBehavior>): Promise<WireAppBehavior>
 
 	// ---- Settings ----
 	listProviders(): Promise<WireProviderStatus[]>
@@ -101,6 +105,11 @@ export interface PiDesktopApi {
 	openSettingsDir(kind: 'skills' | 'extensions' | 'agent'): Promise<void>
 	getGeneralSettings(cwd: string | null): Promise<WireGeneralSettings>
 	setGeneralSettings(cwd: string | null, patch: WireGeneralSettingsPatch): Promise<void>
+}
+
+/** 应用自身行为设置（与 pi 配置无关，存于 Electron userData）。 */
+export interface WireAppBehavior {
+	closeToTray: boolean
 }
 
 export interface WireProviderStatus {
@@ -165,6 +174,8 @@ export interface WireSessionListItem {
 	id: string
 	cwd: string
 	name: string | null
+	/** 派生来源会话文件（fork 时记录，用于侧边栏分支树） */
+	parentSessionPath: string | null
 	created: string
 	modified: string
 	messageCount: number

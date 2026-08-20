@@ -8,6 +8,7 @@ function toListItem(s: {
 	id: string
 	cwd: string
 	name?: string
+	parentSessionPath?: string
 	created: Date
 	modified: Date
 	messageCount: number
@@ -18,6 +19,7 @@ function toListItem(s: {
 		id: s.id,
 		cwd: s.cwd,
 		name: s.name ?? null,
+		parentSessionPath: s.parentSessionPath ?? null,
 		created: s.created.toISOString(),
 		modified: s.modified.toISOString(),
 		messageCount: s.messageCount,

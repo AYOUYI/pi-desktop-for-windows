@@ -5,6 +5,7 @@ import {
 	type AgentSession,
 	type JsonAgentSessionEvent
 } from '@earendil-works/pi-coding-agent'
+import { existsSync } from 'node:fs'
 import type { Model } from '@earendil-works/pi-ai'
 import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListener } from './bridge'
 import type { WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
@@ -285,6 +286,34 @@ export class SdkBridge implements PiBridge {
 	setSessionName(tabId: string, name: string): void {
 		const live = this.require(tabId)
 		live.session.setSessionName(name)
+	}
+
+	/** 在当前对话末尾派生分支（复制历史到新会话文件，parent 指向源会话）。 */
+	async forkSession(sourceTabId: string, newTabId: string): Promise<WireSessionInfo> {
+		const live = this.require(sourceTabId)
+		const file = live.session.sessionFile
+		if (!file || !existsSync(file)) {
+			throw new Error('会话尚未落盘，请先发送至少一条消息')
+		}
+		const sm = SessionManager.open(file)
+		const leaf = sm.getLeafId()
+		let forkedPath: string | undefined
+		if (leaf) {
+			forkedPath = sm.createBranchedSession(leaf)
+		} else {
+			const fresh = SessionManager.create(live.cwd)
+			fresh.newSession({ parentSession: file })
+			forkedPath = fresh.getSessionFile()
+		}
+		if (!forkedPath) {
+			throw new Error('派生会话失败')
+		}
+		return this.openSession({ tabId: newTabId, cwd: live.cwd, sessionPath: forkedPath })
+	}
+
+	async exportHtml(tabId: string, outputPath?: string): Promise<string> {
+		const live = this.require(tabId)
+		return live.session.exportToHtml(outputPath)
 	}
 
 	async disposeSession(tabId: string): Promise<void> {

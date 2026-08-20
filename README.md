@@ -12,10 +12,27 @@ Windows 桌面客户端，基于 [pi coding agent](https://github.com/earendil-w
 
 ```bash
 npm install        # Electron 二进制走 npmmirror 镜像（见 .npmrc）
+npm run icons      # 重新生成应用图标（build/icon.ico / icon.png）
 npm run typecheck
 npm run dev        # 启动开发模式
 npm run smoke      # 无头冒烟：验证主进程 ESM + pi SDK 初始化 + 模型列表
 ```
+
+更多冒烟模式：`npx electron . --smoke-settings`（配置读取）、`--smoke-resume`（会话恢复回放）、`--smoke-chat`（真实对话往返）。
+
+## 打包分发
+
+```bash
+npm run dist       # 生成 NSIS 安装包（release/ 目录，exe）
+```
+
+## 自动更新
+
+打包后的应用支持通过 generic feed 自动更新：设置环境变量 `PIDESKTOP_UPDATE_URL`（指向 electron-builder `latest.yml` 所在目录的 URL）后启动即生效。未设置时更新逻辑完全不加载。
+
+## 托盘与窗口行为
+
+设置 → 界面 → 「关闭按钮最小化到系统托盘」。开启后点关闭只会收进托盘，从托盘菜单退出才会真正退出。
 
 ## 认证
 

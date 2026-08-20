@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
 	PiDesktopApi,
+	WireAppBehavior,
 	WireCustomProviderRequest,
 	WireGeneralSettings,
 	WireGeneralSettingsPatch,
@@ -39,6 +40,11 @@ const api: PiDesktopApi = {
 	refreshWorkspaceSessions: (cwd: string) =>
 		ipcRenderer.invoke('sessions:refresh', cwd) as Promise<WireSessionListItem[]>,
 	gitStats: (cwd: string) => ipcRenderer.invoke('git:stats', cwd) as Promise<WireGitStats | null>,
+	forkActiveSession: () => ipcRenderer.invoke('session:fork') as Promise<WireSessionInfo>,
+	exportActiveSessionHtml: () => ipcRenderer.invoke('session:exportHtml') as Promise<string | null>,
+	getAppBehavior: () => ipcRenderer.invoke('app:getBehavior') as Promise<WireAppBehavior>,
+	setAppBehavior: (patch: Partial<WireAppBehavior>) =>
+		ipcRenderer.invoke('app:setBehavior', patch) as Promise<WireAppBehavior>,
 
 	// ---- Settings ----
 	listProviders: () => ipcRenderer.invoke('settings:listProviders'),

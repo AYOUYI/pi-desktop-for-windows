@@ -118,6 +118,19 @@ export function registerIpc(
 
 	ipcMain.handle('git:stats', (_event, cwd: string) => sessions.gitStats(cwd))
 
+	ipcMain.handle('session:fork', () => bridge.forkSession(activeTab, nextTabId()))
+
+	ipcMain.handle('session:exportHtml', async () => {
+		const win = getWindow()
+		const result = await dialog.showSaveDialog(win!, {
+			title: '导出会话 HTML',
+			defaultPath: `pi-session-${Date.now()}.html`,
+			filters: [{ name: 'HTML', extensions: ['html'] }]
+		})
+		if (result.canceled || !result.filePath) return null
+		return bridge.exportHtml(activeTab, result.filePath)
+	})
+
 	// ---- Settings ----
 
 	const requireSettings = (): SettingsService => {

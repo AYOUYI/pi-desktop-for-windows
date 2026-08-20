@@ -14,6 +14,8 @@ function formatTokens(n: number): string {
 
 function MainHeader() {
 	const tab = useActiveTab()
+	const forkActiveTab = useSessionStore((s) => s.forkActiveTab)
+	const exportActiveHtml = useSessionStore((s) => s.exportActiveHtml)
 	return (
 		<div className="main-header">
 			<span className="main-title">{tab ? (tab.busy ? 'pi 正在工作…' : 'pi') : 'Pi Desktop'}</span>
@@ -21,6 +23,28 @@ function MainHeader() {
 				<span className="main-stats">
 					{tab.usage.turns} 轮 · {formatTokens(tab.usage.totalTokens)} tokens
 					{tab.usage.totalCost > 0 && ` · $${tab.usage.totalCost.toFixed(4)}`}
+				</span>
+			)}
+			{tab && (
+				<span className="header-actions">
+					<button
+						type="button"
+						className="header-btn"
+						title="从当前对话末尾派生分支（复制历史到新会话）"
+						disabled={tab.busy}
+						onClick={() => void forkActiveTab()}
+					>
+						⑂ 派生
+					</button>
+					<button
+						type="button"
+						className="header-btn"
+						title="导出当前会话为 HTML"
+						disabled={tab.items.length === 0}
+						onClick={() => void exportActiveHtml()}
+					>
+						导出 HTML
+					</button>
 				</span>
 			)}
 		</div>

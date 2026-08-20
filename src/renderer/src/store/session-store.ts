@@ -75,6 +75,8 @@ interface SessionStore {
 	openSessionTab(cwd: string, sessionPath: string): Promise<void>
 	closeTab(tabId: string): Promise<void>
 	activateTab(tabId: string): void
+	forkActiveTab(): Promise<void>
+	exportActiveHtml(): Promise<void>
 	setModelActive(modelId: string): Promise<void>
 	setThinkingActive(level: WireThinkingLevel): Promise<void>
 	sendPrompt(text: string): void
@@ -333,6 +335,57 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 		set({ activeTabId: tabId })
 		void window.piDesktop.activateTab(tabId)
 		void get().refreshGitStats()
+	},
+
+	forkActiveTab: async () => {
+		try {
+			const info = await window.piDesktop.forkActiveSession()
+			const items = info.initialItems ?? []
+			const usage: SessionUsage = { turns: 0, totalTokens: 0, totalCost: 0 }
+			for (const it of items) {
+				if (it.usage) {
+					usage.turns++
+					usage.totalTokens += it.usage.totalTokens
+					usage.totalCost += it.usage.costTotal
+				}
+			}
+			set((s) => ({
+				tabs: [
+					...s.tabs,
+					{
+						tabId: info.tabId,
+						cwd: info.cwd,
+						sessionPath: info.sessionPath,
+						name: info.name,
+						modelId: info.modelId,
+						thinkingLevel: info.thinkingLevel,
+						busy: false,
+						items,
+						usage,
+						followSignal: 0
+					}
+				],
+				activeTabId: info.tabId
+			}))
+			void get().loadWorkspaces()
+		} catch (err) {
+			set({ notice: `派生会话失败：${String(err).replace(/^Error:\s*/, '')}` })
+		}
+	},
+
+	exportActiveHtml: async () => {
+		try {
+			const path = await window.piDesktop.exportActiveSessionHtml()
+			if (path) {
+				set({ notice: `已导出：${path}` })
+				setTimeout(() => {
+					const cur = useSessionStore.getState().notice
+					if (cur?.startsWith('已导出：')) useSessionStore.getState().setNotice(null)
+				}, 5000)
+			}
+		} catch (err) {
+			set({ notice: `导出失败：${String(err).replace(/^Error:\s*/, '')}` })
+		}
 	},
 
 	setModelActive: async (modelId) => {
