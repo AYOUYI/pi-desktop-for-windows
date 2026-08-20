@@ -2,18 +2,20 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
 	PiDesktopApi,
 	WireCustomProviderRequest,
+	WireGeneralSettings,
 	WireGeneralSettingsPatch,
+	WireGitStats,
 	WirePiEventPayload,
 	WireSessionInfo,
-	WireThinkingLevel
+	WireSessionListItem,
+	WireThinkingLevel,
+	WireWorkspaceGroup
 } from '../shared/types'
 
 const api: PiDesktopApi = {
 	getAppInfo: () => ipcRenderer.invoke('app:info'),
 	selectWorkspace: () => ipcRenderer.invoke('workspace:select'),
 	listModels: () => ipcRenderer.invoke('pi:listModels'),
-	createSession: (opts: { cwd: string; modelId?: string; thinkingLevel?: WireThinkingLevel }) =>
-		ipcRenderer.invoke('pi:createSession', opts) as Promise<WireSessionInfo>,
 	prompt: (text: string) => ipcRenderer.invoke('pi:prompt', text),
 	steer: (text: string) => ipcRenderer.invoke('pi:steer', text),
 	abort: () => ipcRenderer.invoke('pi:abort'),
@@ -24,6 +26,19 @@ const api: PiDesktopApi = {
 		ipcRenderer.on('pi:event', listener)
 		return () => ipcRenderer.removeListener('pi:event', listener)
 	},
+
+	// ---- Tabs & sessions ----
+	createTab: (opts: { cwd: string; modelId?: string; activate?: boolean }) =>
+		ipcRenderer.invoke('tab:create', opts) as Promise<WireSessionInfo>,
+	openSession: (opts: { cwd: string; sessionPath: string; modelId?: string; activate?: boolean }) =>
+		ipcRenderer.invoke('tab:open', opts) as Promise<WireSessionInfo>,
+	closeTab: (tabId: string) => ipcRenderer.invoke('tab:close', tabId),
+	activateTab: (tabId: string) => ipcRenderer.invoke('tab:activate', tabId),
+	renameSession: (name: string) => ipcRenderer.invoke('tab:rename', name),
+	listWorkspaces: () => ipcRenderer.invoke('sessions:listWorkspaces') as Promise<WireWorkspaceGroup[]>,
+	refreshWorkspaceSessions: (cwd: string) =>
+		ipcRenderer.invoke('sessions:refresh', cwd) as Promise<WireSessionListItem[]>,
+	gitStats: (cwd: string) => ipcRenderer.invoke('git:stats', cwd) as Promise<WireGitStats | null>,
 
 	// ---- Settings ----
 	listProviders: () => ipcRenderer.invoke('settings:listProviders'),

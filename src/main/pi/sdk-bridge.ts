@@ -1,16 +1,99 @@
 import {
 	createAgentSession,
 	ModelRuntime,
+	SessionManager,
 	type AgentSession,
 	type JsonAgentSessionEvent
 } from '@earendil-works/pi-coding-agent'
 import type { Model } from '@earendil-works/pi-ai'
-import type { CreateSessionOptions, PiBridge, PiEventListener } from './bridge'
-import type { WireModelInfo, WireSessionInfo, WireThinkingLevel } from '../../shared/types'
+import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListener } from './bridge'
+import type { WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
 import { serializeSessionEvent } from './event-serializer'
+
+/** Convert persisted AgentMessages into renderer transcript items (resume replay). */
+function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
+	const items: WireTranscriptItem[] = []
+	for (let i = 0; i < messages.length; i++) {
+		const message = messages[i]
+		if (!message || typeof message !== 'object') continue
+		const m = message as {
+			id?: unknown
+			role?: unknown
+			content?: unknown
+			usage?: Record<string, unknown>
+			toolCallId?: unknown
+			toolName?: unknown
+			isError?: unknown
+			command?: unknown
+			exitCode?: unknown
+		}
+		const id = String(m.id ?? `msg-${i}-${Date.now()}`)
+		const blocks = Array.isArray(m.content) ? (m.content as Array<Record<string, unknown>>) : []
+		const joinType = (type: string, field: string) =>
+			blocks
+				.filter((b) => b?.type === type && typeof b[field] === 'string')
+				.map((b) => String(b[field]))
+				.join('\n')
+
+		if (m.role === 'user') {
+			const text = typeof m.content === 'string' ? m.content : joinType('text', 'text')
+			if (text) items.push({ id, kind: 'user', text, thinking: '', status: 'complete' })
+		} else if (m.role === 'assistant') {
+			const usage = m.usage
+			const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+			const cost = usage?.cost as Record<string, unknown> | undefined
+			items.push({
+				id,
+				kind: 'assistant',
+				text: joinType('text', 'text'),
+				thinking: joinType('thinking', 'thinking'),
+				status: 'complete',
+				...(usage
+					? {
+							usage: {
+								input: num(usage.input),
+								output: num(usage.output),
+								totalTokens: num(usage.totalTokens),
+								costTotal: num(cost?.total)
+							}
+						}
+					: {})
+			})
+		} else if (m.role === 'toolResult') {
+			const resultText =
+				typeof m.content === 'string' ? m.content : joinType('text', 'text')
+			items.push({
+				id,
+				kind: 'tool',
+				text: '',
+				thinking: '',
+				status: m.isError ? 'error' : 'complete',
+				toolCallId: typeof m.toolCallId === 'string' ? m.toolCallId : id,
+				toolName: typeof m.toolName === 'string' ? m.toolName : 'tool',
+				resultText,
+				isError: m.isError === true
+			})
+		} else if (m.role === 'bashExecution') {
+			const b = message as { command?: unknown; output?: unknown; exitCode?: unknown; isError?: unknown }
+			items.push({
+				id,
+				kind: 'tool',
+				text: '',
+				thinking: '',
+				status: b.isError ? 'error' : 'complete',
+				toolName: 'bash',
+				command: typeof b.command === 'string' ? b.command : undefined,
+				resultText: typeof b.output === 'string' ? b.output : '',
+				exitCode: typeof b.exitCode === 'number' ? b.exitCode : null
+			})
+		}
+	}
+	return items
+}
 
 interface LiveSession {
 	session: AgentSession
+	sessionPath: string | null
 	cwd: string
 	modelId: string | null
 	thinkingLevel: WireThinkingLevel
@@ -78,25 +161,59 @@ export class SdkBridge implements PiBridge {
 			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {})
 		})
 
-		const tabId = options.tabId
+		return this.adoptSession(options.tabId, session, null, options.cwd, model?.id ?? null, options.thinkingLevel)
+	}
+
+	async openSession(options: OpenSessionOptions): Promise<WireSessionInfo> {
+		if (!this.modelRuntime) {
+			throw new Error('SdkBridge is not initialized')
+		}
+		await this.disposeSession(options.tabId)
+
+		const sessionManager = SessionManager.open(options.sessionPath, undefined, options.cwd)
+		const model = options.modelId ? this.findModel(options.modelId) : undefined
+		const { session } = await createAgentSession({
+			cwd: options.cwd,
+			modelRuntime: this.modelRuntime,
+			sessionManager,
+			...(model ? { model } : {})
+		})
+
+		const name = sessionManager.getSessionName?.() ?? null
+		const info = this.adoptSession(options.tabId, session, options.sessionPath, options.cwd, model?.id ?? null, undefined, name)
+		info.initialItems = transcriptFromMessages(session.agent.state.messages)
+		return info
+	}
+
+	private adoptSession(
+		tabId: string,
+		session: AgentSession,
+		sessionPath: string | null,
+		cwd: string,
+		modelId: string | null,
+		thinkingLevel?: WireThinkingLevel,
+		name?: string | null
+	): WireSessionInfo {
 		session.subscribe((event) => {
 			this.emit(tabId, serializeSessionEvent(event))
 		})
 
-		const live: LiveSession = {
+		this.sessions.set(tabId, {
 			session,
-			cwd: options.cwd,
-			modelId: model?.id ?? null,
-			thinkingLevel: options.thinkingLevel ?? 'medium'
-		}
-		this.sessions.set(tabId, live)
+			sessionPath,
+			cwd,
+			modelId,
+			thinkingLevel: thinkingLevel ?? 'medium'
+		})
 
 		return {
 			tabId,
 			sessionId: null,
-			cwd: options.cwd,
-			modelId: live.modelId,
-			thinkingLevel: live.thinkingLevel
+			sessionPath,
+			cwd,
+			modelId,
+			thinkingLevel: thinkingLevel ?? 'medium',
+			name: name ?? null
 		}
 	}
 
@@ -143,6 +260,11 @@ export class SdkBridge implements PiBridge {
 		const live = this.require(tabId)
 		await live.session.setThinkingLevel(level)
 		live.thinkingLevel = level
+	}
+
+	setSessionName(tabId: string, name: string): void {
+		const live = this.require(tabId)
+		live.session.setSessionName(name)
 	}
 
 	async disposeSession(tabId: string): Promise<void> {

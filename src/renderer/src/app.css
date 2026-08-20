@@ -1,10 +1,10 @@
 :root {
 	color-scheme: dark;
-	--bg: #1a1b23;
-	--bg-sidebar: #14151c;
-	--bg-input: #23242f;
-	--bg-elevated: #262733;
-	--border: #32333f;
+	--bg: #141419;
+	--bg-sidebar: #0f0f14;
+	--bg-input: #20212b;
+	--bg-elevated: #24252f;
+	--border: #2c2d38;
 	--text: #dcdde4;
 	--text-dim: #8b8d9c;
 	--accent: #7c6cf0;
@@ -62,10 +62,11 @@ body {
 	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 18px;
-	padding: 16px 14px;
+	gap: 14px;
+	padding: 14px 10px 12px;
 	background: var(--bg-sidebar);
 	border-right: 1px solid var(--border);
+	overflow: hidden;
 }
 
 .sidebar-brand {
@@ -74,6 +75,7 @@ body {
 	gap: 10px;
 	font-weight: 600;
 	font-size: 15px;
+	padding: 0 4px;
 }
 
 .sidebar-logo {
@@ -101,6 +103,378 @@ body {
 	text-transform: uppercase;
 	color: var(--text-dim);
 }
+
+.sidebar-sessions {
+	flex: 1;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+}
+
+.sidebar-empty {
+	padding: 10px;
+	font-size: 12px;
+	color: var(--text-dim);
+	line-height: 1.6;
+}
+
+.ws-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.ws-header {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 2px;
+}
+
+.ws-toggle {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 12px;
+	cursor: pointer;
+	padding: 5px 4px;
+	border-radius: 6px;
+}
+
+.ws-toggle:hover {
+	color: var(--text);
+	background: var(--bg-input);
+}
+
+.ws-chevron {
+	flex-shrink: 0;
+	font-size: 9px;
+}
+
+.ws-label {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.ws-new {
+	border: none;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 14px;
+	cursor: pointer;
+	width: 22px;
+	height: 22px;
+	border-radius: 5px;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+.ws-new:hover {
+	color: var(--text);
+	background: var(--bg-elevated);
+}
+
+.ws-sessions {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding-left: 10px;
+}
+
+.ws-empty {
+	font-size: 11.5px;
+	color: var(--text-dim);
+	padding: 4px 8px;
+}
+
+.session-row {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	width: 100%;
+	padding: 6px 8px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 12.5px;
+	text-align: left;
+	cursor: pointer;
+	min-width: 0;
+}
+
+.session-row:hover {
+	background: var(--bg-input);
+	color: var(--text);
+}
+
+.session-row.active {
+	background: var(--bg-elevated);
+	color: var(--text);
+}
+
+.session-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--border);
+	flex-shrink: 0;
+}
+
+.session-dot.modified {
+	background: var(--ok);
+}
+
+.session-title {
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.session-meta {
+	flex-shrink: 0;
+	font-size: 10.5px;
+	color: var(--text-dim);
+	opacity: 0.8;
+}
+
+/* ---------- Tab bar ---------- */
+
+.tabbar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 38px;
+	padding: 0 10px;
+	border-bottom: 1px solid var(--border);
+	background: var(--bg-sidebar);
+}
+
+.tabbar-list {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 1;
+	overflow-x: auto;
+	min-width: 0;
+}
+
+.tabbar-list::-webkit-scrollbar {
+	height: 0;
+}
+
+.tab {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 5px 8px 5px 12px;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 12.5px;
+	cursor: pointer;
+	max-width: 200px;
+	min-width: 0;
+	flex-shrink: 0;
+}
+
+.tab:hover {
+	background: var(--bg-input);
+	color: var(--text);
+}
+
+.tab.active {
+	background: var(--bg-elevated);
+	color: var(--text);
+}
+
+.tab-busy {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--warn);
+	animation: pulse 1.2s ease-in-out infinite;
+	flex-shrink: 0;
+}
+
+.tab-title {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.tab-close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 4px;
+	font-size: 10px;
+	color: var(--text-dim);
+	flex-shrink: 0;
+}
+
+.tab-close:hover {
+	background: var(--danger);
+	color: #fff;
+}
+
+.tab-new {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border: 1px solid var(--border);
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 14px;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.tab-new:hover {
+	color: var(--text);
+	border-color: var(--accent);
+}
+
+/* ---------- Chips (model/thinking selectors + git stats) ---------- */
+
+.composer-meta {
+	max-width: 812px;
+	margin: 8px auto 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	min-height: 30px;
+}
+
+.git-chip {
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	color: var(--text-dim);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.composer-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.chip-wrap {
+	position: relative;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	background: var(--bg-input);
+	color: var(--text);
+	font-size: 12px;
+	cursor: pointer;
+	max-width: 220px;
+}
+
+.chip:hover:not(:disabled) {
+	border-color: var(--accent);
+}
+
+.chip:disabled {
+	opacity: 0.5;
+}
+
+.chip-label {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.chip-caret {
+	font-size: 9px;
+	color: var(--text-dim);
+}
+
+.chip-menu {
+	position: absolute;
+	bottom: calc(100% + 6px);
+	right: 0;
+	min-width: 260px;
+	max-height: 300px;
+	overflow-y: auto;
+	padding: 4px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--bg-elevated);
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+	z-index: 50;
+}
+
+.chip-empty {
+	padding: 8px 10px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.chip-option {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	width: 100%;
+	padding: 7px 10px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text);
+	font-size: 12.5px;
+	cursor: pointer;
+	text-align: left;
+}
+
+.chip-option:hover {
+	background: var(--bg-input);
+}
+
+.chip-option.active {
+	color: var(--accent-hover);
+}
+
+.chip-option-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.chip-option-provider {
+	flex-shrink: 0;
+	font-size: 11px;
+	color: var(--text-dim);
+}
+
+/* ---------- Sidebar (legacy bits) ---------- */
 
 .workspace-btn {
 	width: 100%;

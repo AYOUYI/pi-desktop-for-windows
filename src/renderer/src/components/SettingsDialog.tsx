@@ -27,7 +27,7 @@ function errMsg(err: unknown): string {
 // ---------- 通用 ----------
 
 function GeneralTab() {
-	const cwd = useSessionStore((s) => s.cwd)
+	const cwd = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.cwd ?? null)
 	const models = useSessionStore((s) => s.models)
 	const [settings, setSettings] = useState<WireGeneralSettings | null>(null)
 	const [error, setError] = useState<string | null>(null)
@@ -425,7 +425,7 @@ function AppearanceTab() {
 // ---------- 技能 ----------
 
 function SkillsTab() {
-	const cwd = useSessionStore((s) => s.cwd)
+	const cwd = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.cwd ?? null)
 	const [skills, setSkills] = useState<WireSkillInfo[] | null>(null)
 	const [error, setError] = useState<string | null>(null)
 
@@ -471,7 +471,7 @@ function SkillsTab() {
 // ---------- 扩展 ----------
 
 function ExtensionsTab() {
-	const cwd = useSessionStore((s) => s.cwd)
+	const cwd = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.cwd ?? null)
 	const [extensions, setExtensions] = useState<WireExtensionInfo[] | null>(null)
 	const [error, setError] = useState<string | null>(null)
 

@@ -10,6 +10,14 @@ export interface CreateSessionOptions {
 	thinkingLevel?: WireThinkingLevel
 }
 
+export interface OpenSessionOptions {
+	tabId: string
+	cwd: string
+	/** absolute path to the session .jsonl file */
+	sessionPath: string
+	modelId?: string
+}
+
 /**
  * Transport-neutral surface over a pi agent session.
  *
@@ -25,11 +33,13 @@ export interface PiBridge {
 	init(): Promise<void>
 	listModels(): Promise<WireModelInfo[]>
 	createSession(options: CreateSessionOptions): Promise<WireSessionInfo>
+	openSession(options: OpenSessionOptions): Promise<WireSessionInfo>
 	prompt(tabId: string, text: string): void
 	steer(tabId: string, text: string): void
 	abort(tabId: string): void
 	setModel(tabId: string, modelId: string): Promise<void>
 	setThinking(tabId: string, level: WireThinkingLevel): Promise<void>
+	setSessionName(tabId: string, name: string): void
 	disposeSession(tabId: string): Promise<void>
 	dispose(): Promise<void>
 	onEvent(listener: PiEventListener): void

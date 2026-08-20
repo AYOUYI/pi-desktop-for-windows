@@ -15,9 +15,38 @@ export interface WireModelInfo {
 export interface WireSessionInfo {
 	tabId: string
 	sessionId: string | null
+	/** session file path when resumed/opened from disk */
+	sessionPath: string | null
 	cwd: string
 	modelId: string | null
 	thinkingLevel: WireThinkingLevel
+	name: string | null
+	/** Historical transcript when resuming a session from disk. */
+	initialItems?: WireTranscriptItem[]
+}
+
+/** A transcript entry, shared shape between the main-process converter and the renderer store. */
+export interface WireTranscriptItem {
+	id: string
+	kind: 'user' | 'assistant' | 'tool'
+	text: string
+	thinking: string
+	status: 'streaming' | 'complete' | 'error' | 'aborted' | 'running'
+	usage?: WireItemUsage
+	toolCallId?: string
+	toolName?: string
+	resultText?: string
+	isError?: boolean
+	path?: string
+	command?: string
+	exitCode?: number | null
+}
+
+export interface WireItemUsage {
+	input: number
+	output: number
+	totalTokens: number
+	costTotal: number
 }
 
 export interface AppInfo {
@@ -44,13 +73,22 @@ export interface PiDesktopApi {
 	getAppInfo(): Promise<AppInfo>
 	selectWorkspace(): Promise<string | null>
 	listModels(): Promise<WireModelInfo[]>
-	createSession(opts: { cwd: string; modelId?: string; thinkingLevel?: WireThinkingLevel }): Promise<WireSessionInfo>
 	prompt(text: string): Promise<void>
 	steer(text: string): Promise<void>
 	abort(): Promise<void>
 	setModel(modelId: string): Promise<void>
 	setThinking(level: WireThinkingLevel): Promise<void>
 	onPiEvent(cb: (payload: WirePiEventPayload) => void): () => void
+
+	// ---- Tabs & sessions (tabId-scoped; active tab implied) ----
+	createTab(opts: { cwd: string; modelId?: string; activate?: boolean }): Promise<WireSessionInfo>
+	openSession(opts: { cwd: string; sessionPath: string; modelId?: string; activate?: boolean }): Promise<WireSessionInfo>
+	closeTab(tabId: string): Promise<void>
+	activateTab(tabId: string): Promise<void>
+	renameSession(name: string): Promise<void>
+	listWorkspaces(): Promise<WireWorkspaceGroup[]>
+	refreshWorkspaceSessions(cwd: string): Promise<WireSessionListItem[]>
+	gitStats(cwd: string): Promise<WireGitStats | null>
 
 	// ---- Settings ----
 	listProviders(): Promise<WireProviderStatus[]>
@@ -120,4 +158,28 @@ export interface WireGeneralSettingsPatch {
 	defaultModel?: string | null
 	defaultThinkingLevel?: WireThinkingLevel | null
 	shellPath?: string | null
+}
+
+export interface WireSessionListItem {
+	sessionPath: string
+	id: string
+	cwd: string
+	name: string | null
+	created: string
+	modified: string
+	messageCount: number
+	firstMessage: string
+}
+
+export interface WireWorkspaceGroup {
+	cwd: string
+	/** folder name of cwd for display */
+	label: string
+	sessions: WireSessionListItem[]
+}
+
+export interface WireGitStats {
+	changedFiles: number
+	insertions: number
+	deletions: number
 }

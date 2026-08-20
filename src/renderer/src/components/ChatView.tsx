@@ -1,24 +1,23 @@
 import { useEffect, useRef } from 'react'
 import { VList, type VListHandle } from 'virtua'
-import { useSessionStore } from '../store/session-store'
+import { useActiveTab, useSessionStore } from '../store/session-store'
 import { MessageBubble } from './MessageBubble'
 import { ToolCard } from './ToolCard'
 
 const BOTTOM_THRESHOLD = 48
 
 export function ChatView() {
-	const items = useSessionStore((s) => s.items)
-	const cwd = useSessionStore((s) => s.cwd)
-	const followSignal = useSessionStore((s) => s.followSignal)
+	const tab = useActiveTab()
+	const items = tab?.items ?? []
+	const followSignal = tab?.followSignal ?? 0
+	const tabsCount = useSessionStore((s) => s.tabs.length)
 	const listRef = useRef<VListHandle>(null)
 	const followRef = useRef(true)
 
-	// 用户手动发送后始终回到底部。
 	useEffect(() => {
 		if (followSignal > 0) followRef.current = true
 	}, [followSignal])
 
-	// 流式更新时贴底滚动；用户上滚即停止跟随。
 	useEffect(() => {
 		if (followRef.current && items.length > 0) {
 			listRef.current?.scrollToIndex(items.length - 1, { align: 'end' })
@@ -32,12 +31,12 @@ export function ChatView() {
 		followRef.current = atBottom
 	}
 
-	if (!cwd) {
+	if (!tab) {
 		return (
 			<div className="chat-empty">
 				<div className="chat-empty-title">Pi Desktop</div>
-				<p>选择一个工作区开始与 pi 对话。</p>
-				<p className="chat-empty-hint">左侧点击「打开工作区」，模型与配置复用 ~/.pi/agent。</p>
+				<p>{tabsCount === 0 ? '打开一个工作区，或从左侧恢复历史会话。' : '选择一个标签页。'}</p>
+				<p className="chat-empty-hint">会话与 pi CLI 共享（~/.pi/agent/sessions），模型配置复用 ~/.pi/agent。</p>
 			</div>
 		)
 	}

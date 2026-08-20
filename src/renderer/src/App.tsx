@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useSessionStore } from './store/session-store'
+import { useActiveTab, useSessionStore } from './store/session-store'
 import { Sidebar } from './components/Sidebar'
+import { TabBar } from './components/TabBar'
 import { ChatView } from './components/ChatView'
 import { Composer } from './components/Composer'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -11,16 +12,15 @@ function formatTokens(n: number): string {
 	return String(n)
 }
 
-function HeaderStats() {
-	const busy = useSessionStore((s) => s.busy)
-	const usage = useSessionStore((s) => s.usage)
+function MainHeader() {
+	const tab = useActiveTab()
 	return (
 		<div className="main-header">
-			<span className="main-title">{busy ? 'pi 正在工作…' : 'pi'}</span>
-			{usage.turns > 0 && (
+			<span className="main-title">{tab ? (tab.busy ? 'pi 正在工作…' : 'pi') : 'Pi Desktop'}</span>
+			{tab && tab.usage.turns > 0 && (
 				<span className="main-stats">
-					{usage.turns} 轮 · {formatTokens(usage.totalTokens)} tokens
-					{usage.totalCost > 0 && ` · $${usage.totalCost.toFixed(4)}`}
+					{tab.usage.turns} 轮 · {formatTokens(tab.usage.totalTokens)} tokens
+					{tab.usage.totalCost > 0 && ` · $${tab.usage.totalCost.toFixed(4)}`}
 				</span>
 			)}
 		</div>
@@ -35,7 +35,7 @@ export function App() {
 
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
-			applyEvent(payload.event)
+			applyEvent(payload.tabId, payload.event)
 		})
 		void (async () => {
 			const info = await window.piDesktop.getAppInfo()
@@ -46,10 +46,9 @@ export function App() {
 			const models = await window.piDesktop.listModels()
 			useSessionStore.getState().setModels(models)
 			if (models.length === 0) {
-				setNotice(
-					'未发现可用模型。请先配置认证：运行 pi auth login，或设置环境变量（如 ANTHROPIC_API_KEY / OPENAI_API_KEY），或填写 ~/.pi/agent/auth.json。'
-				)
+				setNotice('未发现可用模型。请在「设置 → 模型供应商」中配置 API Key。')
 			}
+			await useSessionStore.getState().loadWorkspaces()
 			setReady(true)
 		})()
 		return off
@@ -59,7 +58,8 @@ export function App() {
 		<div className="app-shell">
 			<Sidebar onOpenSettings={() => setSettingsOpen(true)} />
 			<div className="main-column">
-				<HeaderStats />
+				<TabBar />
+				<MainHeader />
 				<ChatView />
 				<Composer />
 			</div>

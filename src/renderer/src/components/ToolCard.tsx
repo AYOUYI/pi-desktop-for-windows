@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createPatch } from 'diff'
-import { useSessionStore, type ChatItem } from '../store/session-store'
+import { useActiveTab, type ChatItem } from '../store/session-store'
 import { DiffView } from './DiffView'
 
 const TOOL_STATUS_LABEL: Record<string, string> = {
@@ -27,7 +27,7 @@ function tailLine(text: string | undefined): string {
 
 export function ToolCard({ item }: { item: ChatItem }) {
 	const [open, setOpen] = useState(false)
-	const cwd = useSessionStore((s) => s.cwd)
+	const cwd = useActiveTab()?.cwd ?? null
 	const statusClass = item.status === 'running' ? 'running' : item.status === 'error' || item.status === 'aborted' ? 'error' : 'done'
 
 	// write 工具没有 details.patch，从参数合成一个全新增量的 unified patch。

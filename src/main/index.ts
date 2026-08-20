@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SdkBridge } from './pi/sdk-bridge'
 import { SettingsService } from './pi/settings-service'
+import { SessionsService } from './pi/sessions-service'
 import { registerIpc } from './ipc'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -51,7 +52,7 @@ async function bootstrap(): Promise<void> {
 	bridge = new SdkBridge()
 	await bridge.init()
 	const settings = new SettingsService(bridge.getRuntime()!)
-	registerIpc(() => mainWindow, bridge, settings)
+	registerIpc(() => mainWindow, bridge, settings, new SessionsService())
 
 	if (isSmoke) {
 		// Headless verification: proves the ESM main bundle loads, the pi SDK
@@ -84,6 +85,31 @@ async function bootstrap(): Promise<void> {
 				skills: skills.length,
 				extensions: extensions.length,
 				general
+			})
+		)
+		app.exit(0)
+		return
+	}
+
+	if (process.argv.includes('--smoke-resume')) {
+		const { SessionsService } = await import('./pi/sessions-service')
+		const svc = new SessionsService()
+		const groups = await svc.listWorkspaces()
+		const newest = groups[0]?.sessions[0]
+		if (!newest) {
+			console.log('[smoke-resume]', JSON.stringify({ ok: false, reason: 'no sessions on disk' }))
+			app.exit(1)
+			return
+		}
+		const info = await bridge.openSession({ tabId: 'smoke', cwd: newest.cwd, sessionPath: newest.sessionPath })
+		console.log(
+			'[smoke-resume]',
+			JSON.stringify({
+				ok: true,
+				workspaces: groups.length,
+				cwd: newest.cwd,
+				name: info.name,
+				replayedItems: info.initialItems?.length ?? 0
 			})
 		)
 		app.exit(0)
