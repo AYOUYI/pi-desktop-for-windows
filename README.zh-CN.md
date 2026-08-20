@@ -2,11 +2,11 @@
 
 [English](README.md) | **[简体中文](README.zh-CN.md)**
 
-基于 [pi coding agent](https://github.com/earendil-works/pi) 的 Windows 原生桌面客户端，聊天式 UI 对标 Codex/ZCode 类编码助手。构建在 pi 官方 SDK（`@earendil-works/pi-coding-agent`）之上，SDK 进程内运行——不依赖 CLI 子进程，不自造私有配置格式。
+基于 [pi coding agent](https://github.com/earendil-works/pi) 的 Windows 原生桌面客户端，采用现代化聊天式编码助手界面。构建在 pi 官方 SDK（`@earendil-works/pi-coding-agent`）之上，SDK 进程内运行——不依赖 CLI 子进程，不自造私有配置格式。
 
 ## 功能特性
 
-- **ZCode 风格界面** —— 按工作区分组的会话侧边栏（可折叠、相对时间、修改状态点）、顶部多会话标签页（支持并行）、底部输入区带模型/思考级别芯片和 git 变更统计
+- **聊天优先界面** —— 按工作区分组的会话侧边栏（可折叠、相对时间、修改状态点）、顶部多会话标签页（支持并行）、底部输入区带模型/思考级别芯片和 git 变更统计
 - **流式聊天** —— Markdown 渲染 + shiki 语法高亮、代码复制按钮、思考过程折叠、消息级与会话级 token 用量和成本显示
 - **工具卡片** —— read/bash/edit/write/grep：bash 实时输出尾部、退出码、edit/write 的彩色 diff 视图（统一补丁格式）
 - **会话管理** —— 从磁盘恢复任意会话（与 pi CLI 共享）、多 Tab 并行 agent、会话派生（从当前对话末尾分叉）+ 侧边栏分支树、导出 HTML

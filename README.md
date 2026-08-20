@@ -2,11 +2,11 @@
 
 **[English](README.md)** | [简体中文](README.zh-CN.md)
 
-A native Windows desktop client for the [pi coding agent](https://github.com/earendil-works/pi), with a chat-style UI inspired by Codex/ZCode-class coding assistants. Built on pi's official SDK (`@earendil-works/pi-coding-agent`) running in-process — no CLI subprocess, no private config formats.
+A native Windows desktop client for the [pi coding agent](https://github.com/earendil-works/pi), with a modern chat-style coding assistant UI. Built on pi's official SDK (`@earendil-works/pi-coding-agent`) running in-process — no CLI subprocess, no private config formats.
 
 ## Features
 
-- **ZCode-style UI** — workspace-grouped session sidebar (collapsible, relative timestamps, modified dots), top tab bar with parallel sessions, composer with model/thinking chips and git change stats
+- **Chat-first interface** — workspace-grouped session sidebar (collapsible, relative timestamps, modified dots), top tab bar with parallel sessions, composer with model/thinking chips and git change stats
 - **Streaming chat** — Markdown rendering with shiki syntax highlighting, copy buttons, collapsible thinking blocks, token usage & cost per message and per session
 - **Tool cards** — read/bash/edit/write/grep with live bash output tail, exit codes, and colored diff views for edits (unified patch) and writes
 - **Session management** — resume any session from disk (shared with the pi CLI), multi-tab parallel agents, session fork (branch from current point) with a fork tree in the sidebar, HTML export
