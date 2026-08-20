@@ -830,28 +830,55 @@ html[data-bg='on'][data-theme='light'] {
 	cursor: default;
 }
 
-/* ---------- 消息悬浮复制按钮 ---------- */
+/* ---------- 消息悬浮操作按钮（复制/编辑） ---------- */
 
-.msg-copy {
-	align-self: flex-end;
-	padding: 2px 10px;
-	border: 1px solid var(--border);
-	border-radius: 5px;
-	background: var(--bg-elevated);
-	color: var(--text-dim);
-	font-size: 11px;
-	cursor: pointer;
+.msg-actions {
+	display: flex;
+	gap: 4px;
 	opacity: 0;
 	transition: opacity 0.15s ease;
 }
 
-.msg:hover .msg-copy {
+.msg:hover .msg-actions {
 	opacity: 1;
 }
 
-.msg-copy:hover {
+.msg-user .msg-actions {
+	align-self: flex-end;
+}
+
+.msg-icon-btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-dim);
+	cursor: pointer;
+}
+
+.msg-icon-btn:hover {
+	background: var(--bg-elevated);
 	color: var(--text);
-	border-color: var(--accent);
+}
+
+.msg-action-tip {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	padding: 2px 8px;
+	border-radius: 5px;
+	background: var(--bg-elevated);
+	border: 1px solid var(--border);
+	color: var(--text);
+	font-size: 11px;
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 20;
 }
 
 /* ---------- 右键菜单 ---------- */

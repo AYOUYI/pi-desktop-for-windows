@@ -1,27 +1,55 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { ChatItem } from '../store/session-store'
+import { useSessionStore, type ChatItem } from '../store/session-store'
 import { CodeBlock } from './CodeBlock'
 
-function CopyButton({ text }: { text: string }) {
-	const [copied, setCopied] = useState(false)
+function IconCopy() {
 	return (
-		<button
-			type="button"
-			className="msg-copy"
-			onClick={async () => {
-				try {
-					await navigator.clipboard.writeText(text)
-					setCopied(true)
-					setTimeout(() => setCopied(false), 1500)
-				} catch {
-					/* clipboard unavailable */
-				}
-			}}
-		>
-			{copied ? '已复制' : '复制'}
-		</button>
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+			<rect x="9" y="9" width="12" height="12" rx="2" />
+			<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+		</svg>
+	)
+}
+
+function IconEdit() {
+	return (
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+			<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+		</svg>
+	)
+}
+
+function MsgActions({ item }: { item: ChatItem }) {
+	const [copied, setCopied] = useState(false)
+	const editIntoComposer = useSessionStore((s) => s.editIntoComposer)
+	const copy = async () => {
+		try {
+			await navigator.clipboard.writeText(item.text)
+			setCopied(true)
+			setTimeout(() => setCopied(false), 1500)
+		} catch {
+			/* clipboard unavailable */
+		}
+	}
+	return (
+		<div className="msg-actions">
+			<button type="button" className="msg-icon-btn" title="复制" onClick={() => void copy()}>
+				<IconCopy />
+				{copied && <span className="msg-action-tip">已复制</span>}
+			</button>
+			{item.kind === 'user' && (
+				<button
+					type="button"
+					className="msg-icon-btn"
+					title="编辑（放回输入框）"
+					onClick={() => editIntoComposer(item.text)}
+				>
+					<IconEdit />
+				</button>
+			)}
+		</div>
 	)
 }
 
@@ -49,7 +77,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 			<div className="msg msg-user">
 				<div className="msg-role">你</div>
 				<div className="msg-body user-text">{item.text}</div>
-				{item.text && <CopyButton text={item.text} />}
+				{item.text && <MsgActions item={item} />}
 			</div>
 		)
 	}
@@ -83,7 +111,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						{item.usage && item.usage.costTotal > 0 && <span>${item.usage.costTotal.toFixed(4)}</span>}
 					</div>
 				)}
-				{item.text && item.status !== 'streaming' && <CopyButton text={item.text} />}
+				{item.text && item.status !== 'streaming' && <MsgActions item={item} />}
 			</div>
 		)
 	}

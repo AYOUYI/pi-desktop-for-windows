@@ -120,8 +120,15 @@ export function Composer() {
 	const tab = useActiveTab()
 	const sendPrompt = useSessionStore((s) => s.sendPrompt)
 	const gitStats = useSessionStore((s) => s.gitStats)
-	const [text, setText] = useState('')
+	const text = useSessionStore((s) => s.draft)
+	const setText = useSessionStore((s) => s.setDraft)
+	const draftSignal = useSessionStore((s) => s.draftSignal)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+	// 「编辑」回填后聚焦输入框
+	useEffect(() => {
+		if (draftSignal > 0) textareaRef.current?.focus()
+	}, [draftSignal])
 
 	const busy = tab?.busy ?? false
 

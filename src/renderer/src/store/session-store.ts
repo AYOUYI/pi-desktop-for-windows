@@ -73,10 +73,15 @@ interface SessionStore {
 	browserOpen: boolean
 	browserTabs: WireBrowserState['tabs']
 	browserActiveTabId: string | null
+	/** Composer 输入框内容（提升到 store 以支持「编辑」回填） */
+	draft: string
+	draftSignal: number
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
 	setModels(models: WireModelInfo[]): void
+	setDraft(text: string): void
+	editIntoComposer(text: string): void
 	setBrowserOpen(open: boolean): Promise<void>
 	setBrowserState(state: WireBrowserState): void
 	loadWorkspaces(): Promise<void>
@@ -213,10 +218,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	browserOpen: false,
 	browserTabs: [],
 	browserActiveTabId: null,
+	draft: '',
+	draftSignal: 0,
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
 	setModels: (models) => set({ models }),
+
+	setDraft: (text) => set({ draft: text }),
+
+	editIntoComposer: (text) => set((s) => ({ draft: text, draftSignal: s.draftSignal + 1 })),
 
 	setBrowserOpen: async (open) => {
 		set({ browserOpen: open })
