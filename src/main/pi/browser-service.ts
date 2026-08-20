@@ -192,14 +192,24 @@ export class BrowserService {
 
 	// ---------- agent 工具 ----------
 
+	/** 注入系统提示 Guidelines：让模型理解内嵌浏览器的存在与使用方式 */
+	private static readonly GUIDELINES = [
+		'本应用内置一个用户实时可见的浏览器面板。凡是涉及网页的任务（打开网站、登录、填表、抓取页面内容），优先使用 browser_* 工具，不要用 bash 启动外部浏览器。',
+		'你只能看见内嵌浏览器：bash 等命令在桌面弹出的外部窗口你无法看到，也不要假设能看到。',
+		'导航或点击后调用 browser_screenshot 查看页面（截图以图像返回，你可以直接看到），据此决定下一步操作。',
+		'定位元素优先用可见文本（browser_click 的 text 参数），其次用 CSS selector；填表用 browser_type。'
+	]
+
 	tools(): ToolDefinition[] {
 		const svc = this
+		const G = BrowserService.GUIDELINES
 		return [
 			defineTool({
 				name: 'browser_open',
 				label: '打开网页',
-				description: '在内嵌浏览器中打开 URL 并等待加载完成。',
+				description: '在应用内嵌浏览器面板中打开 URL 并等待加载完成（用户实时可见该面板）。',
 				promptSnippet: 'browser_open(url) - 内嵌浏览器导航',
+				promptGuidelines: G,
 				parameters: Type.Object({ url: Type.String({ description: 'http(s) URL 或域名' }) }),
 				async execute(_id, params: { url: string }) {
 					const msg = await svc.navigate(params.url)
@@ -211,6 +221,7 @@ export class BrowserService {
 				label: '浏览器截图',
 				description: '截取内嵌浏览器当前视口，返回 JPEG 图像。用于查看页面布局、验证操作结果。',
 				promptSnippet: 'browser_screenshot() - 当前页面截图',
+				promptGuidelines: G,
 				parameters: Type.Object({}),
 				async execute() {
 					const shot = await svc.screenshot()
@@ -228,6 +239,7 @@ export class BrowserService {
 				label: '点击元素',
 				description: '在内嵌浏览器中点击元素：优先用 CSS selector，否则用可见文本匹配。',
 				promptSnippet: 'browser_click(selector?, text?) - 点击按钮/链接',
+				promptGuidelines: G,
 				parameters: Type.Object({
 					selector: Type.Optional(Type.String()),
 					text: Type.Optional(Type.String({ description: '元素可见文本，如「登录」' }))
@@ -242,6 +254,7 @@ export class BrowserService {
 				label: '输入文本',
 				description: '向指定输入框（CSS selector）输入文本，可选按回车提交。selector 省略时输入到当前焦点。',
 				promptSnippet: 'browser_type(selector?, text, submit?) - 填表',
+				promptGuidelines: G,
 				parameters: Type.Object({
 					selector: Type.Optional(Type.String()),
 					text: Type.String(),
@@ -257,6 +270,7 @@ export class BrowserService {
 				label: '执行页面 JS',
 				description: '在内嵌浏览器页面上下文执行 JavaScript 并返回结果（用于读取 DOM、调用页面 API）。',
 				promptSnippet: 'browser_evaluate(code) - 页面内执行 JS',
+				promptGuidelines: G,
 				parameters: Type.Object({ code: Type.String() }),
 				async execute(_id, params: { code: string }) {
 					const out = await svc.evaluate(params.code)
@@ -268,6 +282,7 @@ export class BrowserService {
 				label: '读取页面文本',
 				description: '获取内嵌浏览器当前页面的纯文本内容（innerText，截断到 6000 字符）。',
 				promptSnippet: 'browser_get_content() - 页面文本',
+				promptGuidelines: G,
 				parameters: Type.Object({}),
 				async execute() {
 					const text = await svc.getContent()
