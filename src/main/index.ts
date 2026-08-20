@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { SdkBridge } from './pi/sdk-bridge'
 import { SettingsService } from './pi/settings-service'
 import { SessionsService } from './pi/sessions-service'
+import { BrowserService } from './pi/browser-service'
 import { registerIpc } from './ipc'
 import type { WireAppBehavior } from '../shared/types'
 
@@ -14,6 +15,7 @@ let mainWindow: BrowserWindow | null = null
 let bridge: SdkBridge | null = null
 let tray: Tray | null = null
 let quitting = false
+let browser: BrowserService | null = null
 
 // ---------- 应用行为设置（Electron userData，与 pi 配置分离） ----------
 
@@ -123,7 +125,8 @@ function createWindow(): void {
 
 async function bootstrap(): Promise<void> {
 	const isSmoke = process.argv.includes('--smoke')
-	bridge = new SdkBridge()
+	browser = new BrowserService()
+	bridge = new SdkBridge(browser)
 	await bridge.init()
 	const settings = new SettingsService(bridge.getRuntime()!)
 	registerIpc(() => mainWindow, bridge, settings, new SessionsService())
@@ -134,6 +137,15 @@ async function bootstrap(): Promise<void> {
 		saveBehavior(next)
 		return next
 	})
+
+	// ---- 内嵌浏览器 ----
+	ipcMain.handle('browser:setOpen', (_event, open: boolean) => {
+		browser?.setOpen(open)
+	})
+	ipcMain.handle('browser:setRect', (_event, rect: { x: number; y: number; width: number; height: number }) => {
+		browser?.setRect(rect)
+	})
+	ipcMain.handle('browser:navigate', (_event, url: string) => browser?.navigate(url))
 
 	if (isSmoke) {
 		// Headless verification: proves the ESM main bundle loads, the pi SDK
@@ -231,6 +243,7 @@ async function bootstrap(): Promise<void> {
 	}
 
 	createWindow()
+	browser?.attach(mainWindow!)
 	createTray()
 
 	// 自动更新：仅在打包后且显式配置更新源时启用（generic provider）。

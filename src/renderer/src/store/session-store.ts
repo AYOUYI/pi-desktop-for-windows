@@ -65,10 +65,12 @@ interface SessionStore {
 	tabs: TabState[]
 	activeTabId: string | null
 	gitStats: WireGitStats | null
+	browserOpen: boolean
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
 	setModels(models: WireModelInfo[]): void
+	setBrowserOpen(open: boolean): Promise<void>
 	loadWorkspaces(): Promise<void>
 	refreshGitStats(): Promise<void>
 	createTab(cwd: string): Promise<void>
@@ -200,10 +202,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	tabs: [],
 	activeTabId: null,
 	gitStats: null,
+	browserOpen: false,
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
 	setModels: (models) => set({ models }),
+
+	setBrowserOpen: async (open) => {
+		set({ browserOpen: open })
+		await window.piDesktop.browserSetOpen(open)
+	},
 
 	loadWorkspaces: async () => {
 		try {

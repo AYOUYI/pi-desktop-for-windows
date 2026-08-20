@@ -8,6 +8,7 @@ import {
 import { existsSync } from 'node:fs'
 import type { Model } from '@earendil-works/pi-ai'
 import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListener } from './bridge'
+import type { BrowserService } from './browser-service'
 import type { WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
 import { serializeSessionEvent } from './event-serializer'
 
@@ -111,6 +112,8 @@ export class SdkBridge implements PiBridge {
 	private sessions = new Map<string, LiveSession>()
 	private listeners: PiEventListener[] = []
 
+	constructor(private readonly browser?: BrowserService) {}
+
 	async init(): Promise<void> {
 		this.modelRuntime = await ModelRuntime.create()
 	}
@@ -171,7 +174,8 @@ export class SdkBridge implements PiBridge {
 			cwd: options.cwd,
 			modelRuntime: this.modelRuntime,
 			...(model ? { model } : {}),
-			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {})
+			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}),
+			...(this.browser ? { customTools: this.browser.tools() } : {})
 		})
 
 		return this.adoptSession(options.tabId, session, null, options.cwd, model, options.thinkingLevel)
@@ -189,7 +193,8 @@ export class SdkBridge implements PiBridge {
 			cwd: options.cwd,
 			modelRuntime: this.modelRuntime,
 			sessionManager,
-			...(model ? { model } : {})
+			...(model ? { model } : {}),
+			...(this.browser ? { customTools: this.browser.tools() } : {})
 		})
 
 		const name = sessionManager.getSessionName?.() ?? null

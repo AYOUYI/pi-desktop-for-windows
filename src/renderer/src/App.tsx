@@ -5,6 +5,7 @@ import { TabBar } from './components/TabBar'
 import { ChatView } from './components/ChatView'
 import { Composer } from './components/Composer'
 import { SettingsDialog } from './components/SettingsDialog'
+import { BrowserPanel } from './components/BrowserPanel'
 
 function formatTokens(n: number): string {
 	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -16,6 +17,8 @@ function MainHeader() {
 	const tab = useActiveTab()
 	const forkActiveTab = useSessionStore((s) => s.forkActiveTab)
 	const exportActiveHtml = useSessionStore((s) => s.exportActiveHtml)
+	const browserOpen = useSessionStore((s) => s.browserOpen)
+	const setBrowserOpen = useSessionStore((s) => s.setBrowserOpen)
 	return (
 		<div className="main-header">
 			<span className="main-title">{tab ? (tab.busy ? 'pi 正在工作…' : 'pi') : 'Pi Desktop'}</span>
@@ -27,6 +30,14 @@ function MainHeader() {
 			)}
 			{tab && (
 				<span className="header-actions">
+					<button
+						type="button"
+						className={browserOpen ? 'header-btn active' : 'header-btn'}
+						title="打开/关闭内嵌浏览器（agent 可用 browser_* 工具操作它）"
+						onClick={() => void setBrowserOpen(!browserOpen)}
+					>
+						浏览器
+					</button>
 					<button
 						type="button"
 						className="header-btn"
@@ -56,6 +67,7 @@ export function App() {
 	const setNotice = useSessionStore((s) => s.setNotice)
 	const applyEvent = useSessionStore((s) => s.applyEvent)
 	const [settingsOpen, setSettingsOpen] = useState(false)
+	const browserOpen = useSessionStore((s) => s.browserOpen)
 
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
@@ -84,8 +96,13 @@ export function App() {
 			<div className="main-column">
 				<TabBar />
 				<MainHeader />
-				<ChatView />
-				<Composer />
+				<div className="main-body">
+					<div className="chat-column">
+						<ChatView />
+						<Composer />
+					</div>
+					{browserOpen && <BrowserPanel />}
+				</div>
 			</div>
 			{settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 		</div>
