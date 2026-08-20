@@ -30,6 +30,8 @@ export interface ChatItem {
 	text: string
 	thinking: string
 	status: ItemStatus
+	/** provider-side error message when status === 'error' */
+	errorText?: string
 	usage?: ItemUsage
 	toolCallId?: string
 	toolName?: string
@@ -532,10 +534,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					const status: ItemStatus =
 						reason === 'error' ? 'error' : reason === 'aborted' ? 'aborted' : 'complete'
 					const usage = extractUsage(message)
+					const rawError = (message as { errorMessage?: unknown }).errorMessage
+					const errorText = typeof rawError === 'string' && rawError ? rawError : undefined
 					updateItems((items) =>
 						items.map((it) =>
 							it.kind === 'assistant' && (it.id === id || it.status === 'streaming')
-								? { ...it, text: text || it.text, status, usage: usage ?? it.usage }
+								? { ...it, text: text || it.text, status, errorText: errorText ?? it.errorText, usage: usage ?? it.usage }
 								: it
 						)
 					)

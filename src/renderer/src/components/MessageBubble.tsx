@@ -44,9 +44,13 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 					</details>
 				)}
 				<div className="msg-body">
-					<ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-						{item.text || (item.status === 'streaming' ? '' : '（无输出）')}
-					</ReactMarkdown>
+					{item.status === 'error' && item.errorText ? (
+						<div className="msg-error">出错了：{item.errorText}</div>
+					) : (
+						<ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+							{item.text || (item.status === 'streaming' ? '' : '（无输出）')}
+						</ReactMarkdown>
+					)}
 				</div>
 				{item.usage && (
 					<div className="msg-usage">

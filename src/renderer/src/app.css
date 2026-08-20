@@ -761,6 +761,18 @@ body {
 	color: var(--text-dim);
 }
 
+.msg-error {
+	padding: 10px 14px;
+	border: 1px solid var(--danger);
+	border-radius: var(--radius);
+	background: rgba(224, 86, 107, 0.08);
+	color: var(--danger);
+	font-size: 12.5px;
+	line-height: 1.6;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 .check-row {
 	display: flex;
 	align-items: center;
