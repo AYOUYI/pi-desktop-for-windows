@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { PiDesktopApi, WirePiEventPayload, WireSessionInfo, WireThinkingLevel } from '../shared/types'
+import type {
+	PiDesktopApi,
+	WireCustomProviderRequest,
+	WireGeneralSettingsPatch,
+	WirePiEventPayload,
+	WireSessionInfo,
+	WireThinkingLevel
+} from '../shared/types'
 
 const api: PiDesktopApi = {
 	getAppInfo: () => ipcRenderer.invoke('app:info'),
@@ -16,7 +23,21 @@ const api: PiDesktopApi = {
 		const listener = (_event: Electron.IpcRendererEvent, payload: WirePiEventPayload) => cb(payload)
 		ipcRenderer.on('pi:event', listener)
 		return () => ipcRenderer.removeListener('pi:event', listener)
-	}
+	},
+
+	// ---- Settings ----
+	listProviders: () => ipcRenderer.invoke('settings:listProviders'),
+	setProviderApiKey: (providerId: string, apiKey: string) =>
+		ipcRenderer.invoke('settings:setApiKey', providerId, apiKey),
+	logoutProvider: (providerId: string) => ipcRenderer.invoke('settings:logout', providerId),
+	addCustomProvider: (req: WireCustomProviderRequest) => ipcRenderer.invoke('settings:addCustomProvider', req),
+	removeCustomProvider: (providerId: string) => ipcRenderer.invoke('settings:removeCustomProvider', providerId),
+	listSkills: (cwd: string | null) => ipcRenderer.invoke('settings:listSkills', cwd),
+	listExtensions: (cwd: string | null) => ipcRenderer.invoke('settings:listExtensions', cwd),
+	openSettingsDir: (kind: 'skills' | 'extensions' | 'agent') => ipcRenderer.invoke('settings:openDir', kind),
+	getGeneralSettings: (cwd: string | null) => ipcRenderer.invoke('settings:getGeneral', cwd),
+	setGeneralSettings: (cwd: string | null, patch: WireGeneralSettingsPatch) =>
+		ipcRenderer.invoke('settings:setGeneral', cwd, patch)
 }
 
 contextBridge.exposeInMainWorld('piDesktop', api)

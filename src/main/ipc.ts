@@ -1,6 +1,12 @@
 import { app, dialog, ipcMain, type BrowserWindow } from 'electron'
 import type { PiBridge } from './pi/bridge'
-import type { AppInfo, WireThinkingLevel } from '../shared/types'
+import type { SettingsService } from './pi/settings-service'
+import type {
+	AppInfo,
+	WireCustomProviderRequest,
+	WireGeneralSettingsPatch,
+	WireThinkingLevel
+} from '../shared/types'
 
 /** The single M1 tab; multi-tab arrives in M3 and replaces this constant. */
 const MAIN_TAB = 'main'
@@ -27,7 +33,11 @@ export function appInfo(): AppInfo {
 	}
 }
 
-export function registerIpc(getWindow: () => BrowserWindow | null, bridge: PiBridge): void {
+export function registerIpc(
+	getWindow: () => BrowserWindow | null,
+	bridge: PiBridge,
+	settings: SettingsService | null
+): void {
 	bridge.onEvent((tabId, event) => {
 		getWindow()?.webContents.send('pi:event', { tabId, event })
 	})
@@ -65,4 +75,41 @@ export function registerIpc(getWindow: () => BrowserWindow | null, bridge: PiBri
 	ipcMain.handle('pi:setModel', (_event, modelId: string) => bridge.setModel(MAIN_TAB, modelId))
 
 	ipcMain.handle('pi:setThinking', (_event, level: WireThinkingLevel) => bridge.setThinking(MAIN_TAB, level))
+
+	// ---- Settings ----
+
+	const requireSettings = (): SettingsService => {
+		if (!settings) throw new Error('设置服务不可用（仅 SDK 模式支持）')
+		return settings
+	}
+
+	ipcMain.handle('settings:listProviders', () => requireSettings().listProviders())
+
+	ipcMain.handle('settings:setApiKey', (_event, providerId: string, apiKey: string) =>
+		requireSettings().setProviderApiKey(providerId, apiKey)
+	)
+
+	ipcMain.handle('settings:logout', (_event, providerId: string) => requireSettings().logoutProvider(providerId))
+
+	ipcMain.handle('settings:addCustomProvider', (_event, req: WireCustomProviderRequest) =>
+		requireSettings().addCustomProvider(req)
+	)
+
+	ipcMain.handle('settings:removeCustomProvider', (_event, providerId: string) =>
+		requireSettings().removeCustomProvider(providerId)
+	)
+
+	ipcMain.handle('settings:listSkills', (_event, cwd: string | null) => requireSettings().listSkills(cwd))
+
+	ipcMain.handle('settings:listExtensions', (_event, cwd: string | null) => requireSettings().listExtensions(cwd))
+
+	ipcMain.handle('settings:openDir', (_event, kind: 'skills' | 'extensions' | 'agent') =>
+		requireSettings().openDir(kind)
+	)
+
+	ipcMain.handle('settings:getGeneral', (_event, cwd: string | null) => requireSettings().getGeneralSettings(cwd))
+
+	ipcMain.handle('settings:setGeneral', (_event, cwd: string | null, patch: WireGeneralSettingsPatch) =>
+		requireSettings().setGeneralSettings(cwd, patch)
+	)
 }

@@ -31,6 +31,11 @@ export class SdkBridge implements PiBridge {
 		this.modelRuntime = await ModelRuntime.create()
 	}
 
+	/** Shared runtime for services like SettingsService. */
+	getRuntime(): ModelRuntime | null {
+		return this.modelRuntime
+	}
+
 	onEvent(listener: PiEventListener): void {
 		this.listeners.push(listener)
 	}

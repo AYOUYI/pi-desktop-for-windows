@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SdkBridge } from './pi/sdk-bridge'
+import { SettingsService } from './pi/settings-service'
 import { registerIpc } from './ipc'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -49,7 +50,8 @@ async function bootstrap(): Promise<void> {
 	const isSmoke = process.argv.includes('--smoke')
 	bridge = new SdkBridge()
 	await bridge.init()
-	registerIpc(() => mainWindow, bridge)
+	const settings = new SettingsService(bridge.getRuntime()!)
+	registerIpc(() => mainWindow, bridge, settings)
 
 	if (isSmoke) {
 		// Headless verification: proves the ESM main bundle loads, the pi SDK
@@ -62,6 +64,26 @@ async function bootstrap(): Promise<void> {
 				electron: process.versions.electron,
 				node: process.versions.node,
 				availableModels: models.length
+			})
+		)
+		app.exit(0)
+		return
+	}
+
+	if (process.argv.includes('--smoke-settings')) {
+		const providers = await settings.listProviders()
+		const skills = settings.listSkills(null)
+		const extensions = await settings.listExtensions(null)
+		const general = await settings.getGeneralSettings(null)
+		console.log(
+			'[smoke-settings]',
+			JSON.stringify({
+				ok: true,
+				providers: providers.length,
+				configured: providers.filter((p) => p.configured).map((p) => p.id),
+				skills: skills.length,
+				extensions: extensions.length,
+				general
 			})
 		)
 		app.exit(0)

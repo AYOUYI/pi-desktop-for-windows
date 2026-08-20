@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSessionStore } from './store/session-store'
 import { Sidebar } from './components/Sidebar'
 import { ChatView } from './components/ChatView'
 import { Composer } from './components/Composer'
+import { SettingsDialog } from './components/SettingsDialog'
 
 function formatTokens(n: number): string {
 	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -30,6 +31,7 @@ export function App() {
 	const setReady = useSessionStore((s) => s.setReady)
 	const setNotice = useSessionStore((s) => s.setNotice)
 	const applyEvent = useSessionStore((s) => s.applyEvent)
+	const [settingsOpen, setSettingsOpen] = useState(false)
 
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
@@ -55,12 +57,13 @@ export function App() {
 
 	return (
 		<div className="app-shell">
-			<Sidebar />
+			<Sidebar onOpenSettings={() => setSettingsOpen(true)} />
 			<div className="main-column">
 				<HeaderStats />
 				<ChatView />
 				<Composer />
 			</div>
+			{settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 		</div>
 	)
 }

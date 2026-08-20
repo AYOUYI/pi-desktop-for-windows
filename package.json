@@ -19,6 +19,7 @@
 		"diff": "^9.0.0",
 		"react-diff-view": "^3.3.3",
 		"shiki": "^4.4.3",
+		"strip-json-comments": "^5.0.3",
 		"virtua": "^0.50.2"
 	},
 	"devDependencies": {

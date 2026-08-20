@@ -11,7 +11,7 @@ const THINKING_LEVELS: { value: WireThinkingLevel; label: string }[] = [
 	{ value: 'max', label: '思考：最大' }
 ]
 
-export function Sidebar() {
+export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 	const cwd = useSessionStore((s) => s.cwd)
 	const models = useSessionStore((s) => s.models)
 	const modelId = useSessionStore((s) => s.modelId)
@@ -109,6 +109,10 @@ export function Sidebar() {
 			</div>
 
 			{notice && <div className="sidebar-notice">{notice}</div>}
+
+			<button type="button" className="settings-btn" onClick={onOpenSettings}>
+				⚙ 设置
+			</button>
 
 			<div className="sidebar-footer">与 pi CLI 共享 ~/.pi/agent 配置与会话</div>
 		</aside>

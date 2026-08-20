@@ -51,4 +51,73 @@ export interface PiDesktopApi {
 	setModel(modelId: string): Promise<void>
 	setThinking(level: WireThinkingLevel): Promise<void>
 	onPiEvent(cb: (payload: WirePiEventPayload) => void): () => void
+
+	// ---- Settings ----
+	listProviders(): Promise<WireProviderStatus[]>
+	setProviderApiKey(providerId: string, apiKey: string): Promise<void>
+	logoutProvider(providerId: string): Promise<void>
+	addCustomProvider(req: WireCustomProviderRequest): Promise<void>
+	removeCustomProvider(providerId: string): Promise<void>
+	listSkills(cwd: string | null): Promise<WireSkillInfo[]>
+	listExtensions(cwd: string | null): Promise<WireExtensionInfo[]>
+	openSettingsDir(kind: 'skills' | 'extensions' | 'agent'): Promise<void>
+	getGeneralSettings(cwd: string | null): Promise<WireGeneralSettings>
+	setGeneralSettings(cwd: string | null, patch: WireGeneralSettingsPatch): Promise<void>
+}
+
+export interface WireProviderStatus {
+	id: string
+	/** display name when known */
+	name: string
+	configured: boolean
+	/** stored | environment | runtime */
+	source?: string
+	label?: string
+	modelCount: number
+	/** true when the provider comes from ~/.pi/agent/models.json (not builtin) */
+	custom: boolean
+}
+
+export interface WireCustomProviderModel {
+	id: string
+	name: string
+}
+
+export interface WireCustomProviderRequest {
+	providerId: string
+	name: string
+	baseUrl: string
+	/** pi API adapter, e.g. openai-completions */
+	api: string
+	apiKey: string
+	models: WireCustomProviderModel[]
+}
+
+export interface WireSkillInfo {
+	name: string
+	description: string
+	filePath: string
+	/** user | project */
+	source: string
+	disableModelInvocation: boolean
+}
+
+export interface WireExtensionInfo {
+	filePath: string
+	/** user | project */
+	source: string
+	/** file | package */
+	kind: 'file' | 'package'
+}
+
+export interface WireGeneralSettings {
+	defaultModel: string | null
+	defaultThinkingLevel: WireThinkingLevel | null
+	shellPath: string | null
+}
+
+export interface WireGeneralSettingsPatch {
+	defaultModel?: string | null
+	defaultThinkingLevel?: WireThinkingLevel | null
+	shellPath?: string | null
 }
