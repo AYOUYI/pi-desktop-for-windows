@@ -250,7 +250,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
 	createTab: async (cwd) => {
 		try {
-			const info = await window.piDesktop.createTab({ cwd, modelId: useSessionStore.getState().models[0]?.id })
+			// 不显式传模型：让 pi 按 settings 的 defaultModel/defaultProvider 解析
+			const info = await window.piDesktop.createTab({ cwd })
 			set((s) => ({
 				tabs: [
 					...s.tabs,

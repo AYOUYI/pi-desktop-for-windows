@@ -210,12 +210,20 @@ export class SdkBridge implements PiBridge {
 			this.emit(tabId, serializeSessionEvent(event))
 		})
 
+		// 以会话实际解析出的模型/思考级别为准（未显式指定时 pi 会从 settings 取默认值）
+		const resolvedModel = session.model ?? model ?? null
+		const sessionThinking = session.thinkingLevel as string
+		const validThinking = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(sessionThinking)
+		const resolvedThinking: WireThinkingLevel =
+			validThinking ? (sessionThinking as WireThinkingLevel) : (thinkingLevel ?? 'medium')
+		const qualifiedModelId = resolvedModel ? this.qualify(resolvedModel) : null
+
 		this.sessions.set(tabId, {
 			session,
 			sessionPath,
 			cwd,
-			modelId: model ? this.qualify(model) : null,
-			thinkingLevel: thinkingLevel ?? 'medium'
+			modelId: qualifiedModelId,
+			thinkingLevel: resolvedThinking
 		})
 
 		return {
@@ -223,8 +231,8 @@ export class SdkBridge implements PiBridge {
 			sessionId: null,
 			sessionPath,
 			cwd,
-			modelId: model ? this.qualify(model) : null,
-			thinkingLevel: thinkingLevel ?? 'medium',
+			modelId: qualifiedModelId,
+			thinkingLevel: resolvedThinking,
 			name: name ?? null
 		}
 	}

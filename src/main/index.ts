@@ -110,6 +110,8 @@ async function bootstrap(): Promise<void> {
 				workspaces: groups.length,
 				cwd: newest.cwd,
 				name: info.name,
+				modelId: info.modelId,
+				thinkingLevel: info.thinkingLevel,
 				replayedItems: info.initialItems?.length ?? 0
 			})
 		)

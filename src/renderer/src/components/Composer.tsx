@@ -27,7 +27,16 @@ function ModelChip() {
 		return () => document.removeEventListener('mousedown', close)
 	}, [open])
 
-	const current = models.find((m) => m.id === tab?.modelId)
+	// 会话绑定的模型可能尚未出现在可用列表里（可用性异步刷新），此时直接展示限定 ID
+	const current =
+		models.find((m) => m.id === tab?.modelId) ??
+		(tab?.modelId
+			? {
+					id: tab.modelId,
+					name: tab.modelId.slice(tab.modelId.indexOf('/') + 1),
+					provider: tab.modelId.slice(0, tab.modelId.indexOf('/'))
+				}
+			: undefined)
 
 	return (
 		<div className="chip-wrap" ref={ref}>
