@@ -82,16 +82,15 @@ function GeneralTab() {
 				<span className="field-label">默认推理级别</span>
 				<select
 					className="select"
-					value={
-					settings.defaultThinkingLevel && ['minimal', 'low', 'medium'].includes(settings.defaultThinkingLevel)
-						? settings.defaultThinkingLevel
-						: 'medium'
-				}
+					value={settings.defaultThinkingLevel ?? 'medium'}
 					onChange={(e) => void save({ defaultThinkingLevel: e.target.value as WireGeneralSettings['defaultThinkingLevel'] })}
 				>
 					<option value="minimal">关</option>
 					<option value="low">低</option>
 					<option value="medium">中</option>
+					<option value="high">高</option>
+					<option value="xhigh">极高</option>
+					<option value="max">最大</option>
 				</select>
 			</label>
 			<label className="field">

@@ -3,16 +3,15 @@ import { useActiveTab, useSessionStore } from '../store/session-store'
 import type { WireThinkingLevel } from '../../../shared/types'
 
 const THINKING_LABEL: Record<WireThinkingLevel, string> = {
-	minimal: '思考：关',
-	low: '思考：低',
-	medium: '思考：中',
-	high: '思考：高',
-	xhigh: '思考：极高',
-	max: '思考：最大'
+	minimal: '关',
+	low: '低',
+	medium: '中',
+	high: '高',
+	xhigh: '极高',
+	max: '最大'
 }
 
-/** 面向用户只暴露三档；pi 内部级别仍完整兼容 */
-const THINKING_OPTIONS: WireThinkingLevel[] = ['minimal', 'low', 'medium']
+const THINKING_OPTIONS: WireThinkingLevel[] = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max']
 
 function ModelChip() {
 	const models = useSessionStore((s) => s.models)
