@@ -60,6 +60,10 @@ export interface TabState {
 	items: ChatItem[]
 	usage: SessionUsage
 	followSignal: number
+	/** 本 Tab 输入框草稿（各 Tab 独立） */
+	draft: string
+	/** 「编辑」回填计数，用于聚焦输入框 */
+	editSignal: number
 }
 
 interface SessionStore {
@@ -73,9 +77,6 @@ interface SessionStore {
 	browserOpen: boolean
 	browserTabs: WireBrowserState['tabs']
 	browserActiveTabId: string | null
-	/** Composer 输入框内容（提升到 store 以支持「编辑」回填） */
-	draft: string
-	draftSignal: number
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
@@ -218,16 +219,26 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	browserOpen: false,
 	browserTabs: [],
 	browserActiveTabId: null,
-	draft: '',
-	draftSignal: 0,
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
 	setModels: (models) => set({ models }),
 
-	setDraft: (text) => set({ draft: text }),
+	setDraft: (text) => {
+		const activeId = get().activeTabId
+		if (!activeId) return
+		set((s) => ({ tabs: s.tabs.map((t) => (t.tabId === activeId ? { ...t, draft: text } : t)) }))
+	},
 
-	editIntoComposer: (text) => set((s) => ({ draft: text, draftSignal: s.draftSignal + 1 })),
+	editIntoComposer: (text) => {
+		const activeId = get().activeTabId
+		if (!activeId) return
+		set((s) => ({
+			tabs: s.tabs.map((t) =>
+				t.tabId === activeId ? { ...t, draft: text, editSignal: t.editSignal + 1 } : t
+			)
+		}))
+	},
 
 	setBrowserOpen: async (open) => {
 		set({ browserOpen: open })
@@ -299,7 +310,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 						busy: false,
 						items: [],
 						usage: emptyUsage(),
-						followSignal: 0
+						followSignal: 0,
+						draft: '',
+						editSignal: 0
 					}
 				],
 				activeTabId: info.tabId
@@ -341,7 +354,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 						busy: false,
 						items,
 						usage,
-						followSignal: 0
+						followSignal: 0,
+						draft: '',
+						editSignal: 0
 					}
 				],
 				activeTabId: info.tabId
@@ -394,7 +409,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 						busy: false,
 						items,
 						usage,
-						followSignal: 0
+						followSignal: 0,
+						draft: '',
+						editSignal: 0
 					}
 				],
 				activeTabId: info.tabId
@@ -423,11 +440,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	setModelActive: async (modelId) => {
 		const tab = get().tabs.find((t) => t.tabId === get().activeTabId)
 		if (!tab) return
+		const prev = tab.modelId
 		set((s) => ({ tabs: s.tabs.map((t) => (t.tabId === tab.tabId ? { ...t, modelId } : t)) }))
 		try {
 			await window.piDesktop.setModel(modelId)
 			set({ notice: null })
 		} catch (err) {
+			// 失败回滚，避免芯片显示与实际模型不一致
+			set((s) => ({ tabs: s.tabs.map((t) => (t.tabId === tab.tabId ? { ...t, modelId: prev } : t)) }))
 			set({ notice: `切换模型失败：${String(err).replace(/^Error:\s*/, '')}` })
 		}
 	},

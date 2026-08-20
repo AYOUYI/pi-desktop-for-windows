@@ -27,7 +27,11 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 
 	useEffect(() => {
 		if (!menu) return
-		const close = () => setMenu(null)
+		const close = (e: Event) => {
+			// 点击菜单内部不关闭（否则 mousedown 会先卸载菜单导致 click 失效）
+			if ((e.target as Element | null)?.closest?.('.ctx-menu')) return
+			setMenu(null)
+		}
 		window.addEventListener('mousedown', close)
 		window.addEventListener('blur', close)
 		return () => {

@@ -11,6 +11,10 @@ files:
   - build/icon.png
   - package.json
 
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+
 # pi SDK 是纯 JS，保持 asar 打包即可
 asar: true
 
