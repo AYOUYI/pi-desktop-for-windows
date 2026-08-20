@@ -55,13 +55,18 @@ function GeneralTab() {
 
 	if (!settings) return <div className="settings-loading">{error ?? '加载中…'}</div>
 
+	// settings.defaultModel 是 pi 的裸 ID；下拉选项是 "provider/model" 限定格式
+	const selectValue = settings.defaultModel
+		? models.find((m) => m.id.endsWith(`/${settings.defaultModel}`))?.id ?? ''
+		: ''
+
 	return (
 		<div className="settings-form">
 			<label className="field">
 				<span className="field-label">默认模型</span>
 				<select
 					className="select"
-					value={settings.defaultModel ?? ''}
+					value={selectValue}
 					onChange={(e) => void save({ defaultModel: e.target.value || null })}
 				>
 					<option value="">（跟随 pi 设置）</option>

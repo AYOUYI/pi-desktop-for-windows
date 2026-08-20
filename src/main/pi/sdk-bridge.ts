@@ -129,22 +129,34 @@ export class SdkBridge implements PiBridge {
 		}
 	}
 
+	/** Wire 格式统一使用 "provider/modelId" 限定 ID（裸 ID 在多供应商下不唯一）。 */
+	private qualify(model: Model<any>): string {
+		return `${String(model.provider)}/${model.id}`
+	}
+
 	async listModels(): Promise<WireModelInfo[]> {
 		if (!this.modelRuntime) return []
 		const models = await this.modelRuntime.getAvailable()
 		return models.map((m) => ({
-			id: m.id,
+			id: this.qualify(m),
 			name: m.name,
 			provider: String(m.provider),
 			reasoning: m.reasoning
 		}))
 	}
 
-	private findModel(modelId: string): Model<any> | undefined {
+	private findModel(qualifiedId: string): Model<any> | undefined {
 		if (!this.modelRuntime) return undefined
-		return this.modelRuntime
-			.getModels()
-			.find((m) => m.id === modelId)
+		const slash = qualifiedId.indexOf('/')
+		const provider = slash >= 0 ? qualifiedId.slice(0, slash) : undefined
+		const modelId = slash >= 0 ? qualifiedId.slice(slash + 1) : qualifiedId
+		const candidates = this.modelRuntime.getModels().filter((m) => m.id === modelId)
+		if (provider) {
+			const exact = candidates.find((m) => String(m.provider) === provider)
+			if (exact) return exact
+		}
+		// 无限定时优先选已认证供应商下的副本
+		return candidates[0]
 	}
 
 	async createSession(options: CreateSessionOptions): Promise<WireSessionInfo> {
@@ -161,7 +173,7 @@ export class SdkBridge implements PiBridge {
 			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {})
 		})
 
-		return this.adoptSession(options.tabId, session, null, options.cwd, model?.id ?? null, options.thinkingLevel)
+		return this.adoptSession(options.tabId, session, null, options.cwd, model, options.thinkingLevel)
 	}
 
 	async openSession(options: OpenSessionOptions): Promise<WireSessionInfo> {
@@ -180,7 +192,7 @@ export class SdkBridge implements PiBridge {
 		})
 
 		const name = sessionManager.getSessionName?.() ?? null
-		const info = this.adoptSession(options.tabId, session, options.sessionPath, options.cwd, model?.id ?? null, undefined, name)
+		const info = this.adoptSession(options.tabId, session, options.sessionPath, options.cwd, model, undefined, name)
 		info.initialItems = transcriptFromMessages(session.agent.state.messages)
 		return info
 	}
@@ -190,7 +202,7 @@ export class SdkBridge implements PiBridge {
 		session: AgentSession,
 		sessionPath: string | null,
 		cwd: string,
-		modelId: string | null,
+		model: Model<any> | null | undefined,
 		thinkingLevel?: WireThinkingLevel,
 		name?: string | null
 	): WireSessionInfo {
@@ -202,7 +214,7 @@ export class SdkBridge implements PiBridge {
 			session,
 			sessionPath,
 			cwd,
-			modelId,
+			modelId: model ? this.qualify(model) : null,
 			thinkingLevel: thinkingLevel ?? 'medium'
 		})
 
@@ -211,7 +223,7 @@ export class SdkBridge implements PiBridge {
 			sessionId: null,
 			sessionPath,
 			cwd,
-			modelId,
+			modelId: model ? this.qualify(model) : null,
 			thinkingLevel: thinkingLevel ?? 'medium',
 			name: name ?? null
 		}
@@ -253,7 +265,7 @@ export class SdkBridge implements PiBridge {
 			throw new Error(`Unknown model: ${modelId}`)
 		}
 		await live.session.setModel(model)
-		live.modelId = model.id
+		live.modelId = this.qualify(model)
 	}
 
 	async setThinking(tabId: string, level: WireThinkingLevel): Promise<void> {

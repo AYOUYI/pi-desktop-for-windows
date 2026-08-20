@@ -64,7 +64,8 @@ async function bootstrap(): Promise<void> {
 				ok: true,
 				electron: process.versions.electron,
 				node: process.versions.node,
-				availableModels: models.length
+				availableModels: models.length,
+				modelIds: models.slice(0, 3).map((m) => m.id)
 			})
 		)
 		app.exit(0)

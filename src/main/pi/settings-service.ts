@@ -214,7 +214,10 @@ export class SettingsService {
 	async setGeneralSettings(cwd: string | null, patch: WireGeneralSettingsPatch): Promise<void> {
 		const manager = await this.settingsManager(cwd)
 		if (patch.defaultModel) {
-			manager.setDefaultModel(patch.defaultModel)
+			// pi 的 settings.defaultModel 存裸 ID；UI 传的是 "provider/model" 限定格式
+			const slash = patch.defaultModel.indexOf('/')
+			const rawId = slash >= 0 ? patch.defaultModel.slice(slash + 1) : patch.defaultModel
+			manager.setDefaultModel(rawId)
 		}
 		if (patch.defaultThinkingLevel) {
 			manager.setDefaultThinkingLevel(patch.defaultThinkingLevel)
