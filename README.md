@@ -1,48 +1,98 @@
 # Pi Desktop
 
-Windows 桌面客户端，基于 [pi coding agent](https://github.com/earendil-works/pi) SDK 构建，UI 风格对标 Codex/ZCode 类聊天式编码助手。
+**[English](README.md)** | [简体中文](README.zh-CN.md)
 
-## 架构
+A native Windows desktop client for the [pi coding agent](https://github.com/earendil-works/pi), with a chat-style UI inspired by Codex/ZCode-class coding assistants. Built on pi's official SDK (`@earendil-works/pi-coding-agent`) running in-process — no CLI subprocess, no private config formats.
 
-- **主进程（Electron, ESM）**：通过 `PiBridge` 接口驱动 pi SDK（进程内 `createAgentSession()`），事件流序列化后经 IPC 推送到渲染进程。预留 `RpcBridge`（`pi --mode rpc` 子进程）作为降级实现。
-- **渲染进程（React 19 + Zustand）**：聊天流、工具卡片、模型/推理级别选择。
-- **配置互通**：与 pi CLI 共享 `~/.pi/agent`（auth.json、models.json、sessions/）。
+## Features
 
-## 开发
+- **ZCode-style UI** — workspace-grouped session sidebar (collapsible, relative timestamps, modified dots), top tab bar with parallel sessions, composer with model/thinking chips and git change stats
+- **Streaming chat** — Markdown rendering with shiki syntax highlighting, copy buttons, collapsible thinking blocks, token usage & cost per message and per session
+- **Tool cards** — read/bash/edit/write/grep with live bash output tail, exit codes, and colored diff views for edits (unified patch) and writes
+- **Session management** — resume any session from disk (shared with the pi CLI), multi-tab parallel agents, session fork (branch from current point) with a fork tree in the sidebar, HTML export
+- **Settings center** — provider status & API keys (written via pi's own `login` API, hot-reloaded), custom OpenAI-compatible providers (Ollama/vLLM), skills & extensions management, theme/accent/font customization, default model & shell path
+- **Windows integration** — system tray with close-to-tray, NSIS installer, procedural app icon; works with Git Bash (auto-detected)
+
+## Architecture
+
+```
+Electron main process (ESM)
+├── PiBridge abstraction
+│   ├── SdkBridge   — createAgentSession() in-process (default)
+│   └── RpcBridge   — `pi --mode rpc` subprocess (reserved fallback)
+├── SettingsService — auth.json / models.json / settings.json via pi APIs
+├── SessionsService — SessionManager.listAll(), git stats
+└── typed IPC → renderer
+Renderer (React 19 + Zustand + virtua)
+└── per-tab state slices, transcript folding, virtualized list
+```
+
+All configuration and session data live in `~/.pi/agent` and are shared with the pi CLI — models, auth, skills, extensions, and sessions are interchangeable between both.
+
+## Getting Started
+
+### Prerequisites
+
+- **Runtime**: no requirements beyond the installer (Electron bundles its own Node ≥ 22.19)
+- **Bash tool**: [Git for Windows](https://git-scm.com/download/win) (auto-detected; configurable in Settings)
+- **Auth**: at least one provider — via Settings → Providers, or `pi auth login`, or env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, ...)
+- **Development**: Node.js ≥ 22.19, npm 10+
+
+### Development
 
 ```bash
-npm install        # Electron 二进制走 npmmirror 镜像（见 .npmrc）
-npm run icons      # 重新生成应用图标（build/icon.ico / icon.png）
+npm install        # Electron binary via npmmirror (see .npmrc)
+npm run icons      # regenerate app icons (build/icon.ico, icon.png)
 npm run typecheck
-npm run dev        # 启动开发模式
-npm run smoke      # 无头冒烟：验证主进程 ESM + pi SDK 初始化 + 模型列表
+npm run dev        # launch dev mode
 ```
 
-更多冒烟模式：`npx electron . --smoke-settings`（配置读取）、`--smoke-resume`（会话恢复回放）、`--smoke-chat`（真实对话往返）。
-
-## 打包分发
+### Smoke tests
 
 ```bash
-npm run dist       # 生成 NSIS 安装包（release/ 目录，exe）
+npx electron . --smoke           # ESM main + pi SDK init + model list
+npx electron . --smoke-settings  # settings read paths against live config
+npx electron . --smoke-resume    # session listing + resume replay
+npx electron . --smoke-chat      # real LLM round-trip through the bridge
 ```
 
-## 自动更新
-
-打包后的应用支持通过 generic feed 自动更新：设置环境变量 `PIDESKTOP_UPDATE_URL`（指向 electron-builder `latest.yml` 所在目录的 URL）后启动即生效。未设置时更新逻辑完全不加载。
-
-## 托盘与窗口行为
-
-设置 → 界面 → 「关闭按钮最小化到系统托盘」。开启后点关闭只会收进托盘，从托盘菜单退出才会真正退出。
-
-## 认证
-
-首次使用前需配置至少一个模型提供方（与 pi CLI 相同）：
+### Packaging
 
 ```bash
-pi auth login <provider>          # OAuth
-# 或设置环境变量 ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY 等
+npm run dist       # NSIS installer → release/Pi Desktop Setup <version>.exe
 ```
 
-## 许可
+The packaged app keeps only main-process externals (pi SDK, etc.) in the asar; renderer libraries are bundled by Vite.
 
-MIT。本应用依赖 [earendil-works/pi](https://github.com/earendil-works/pi)（MIT, Copyright Earendil Works）。
+### Auto-update
+
+Packaged builds support updates from a generic feed: set `PIDESKTOP_UPDATE_URL` (a URL serving electron-builder's `latest.yml`) before launching. When unset, the updater never loads.
+
+### Tray behavior
+
+Settings → Appearance → *Minimize to tray on close*. The tray menu offers Show / Quit.
+
+## Project layout
+
+```
+src/
+├── main/               # Electron main process
+│   ├── pi/             # SdkBridge, settings/sessions services, serializer
+│   └── index.ts        # window, tray, behavior settings, updater guard
+├── preload/            # contextBridge API (typed)
+├── renderer/src/
+│   ├── components/     # Sidebar, TabBar, ChatView, Composer, ToolCard,
+│   │                   # MessageBubble, CodeBlock, DiffView, SettingsDialog
+│   ├── store/          # per-tab session store (zustand)
+│   └── lib/            # shiki highlighter, theme, time utils
+└── shared/types.ts     # wire types across processes
+scripts/generate-icons.mjs  # procedural PNG/ICO icon generator
+```
+
+## Relation to upstream pi
+
+Pi Desktop is a standalone project that consumes pi as an npm dependency and does not modify it. The local pi clone is kept read-only as a reference. Fixes to pi itself belong in an upstream fork/PR and flow back here through dependency upgrades. pi is MIT-licensed (Copyright Earendil Works); attribution is retained in the About notices.
+
+## License
+
+MIT
