@@ -6,6 +6,7 @@ import { SdkBridge } from './pi/sdk-bridge'
 import { SettingsService } from './pi/settings-service'
 import { SessionsService } from './pi/sessions-service'
 import { BrowserService } from './pi/browser-service'
+import { DEFAULT_AGENTS_MD } from './pi/default-agents-md'
 import { registerIpc } from './ipc'
 import type { WireAppBehavior } from '../shared/types'
 
@@ -135,6 +136,17 @@ async function bootstrap(): Promise<void> {
 	browser = new BrowserService()
 	bridge = new SdkBridge(browser)
 	await bridge.init()
+
+	// 首次启动写入默认 AGENTS.md（Windows 平台上下文，给 agent 正确的环境感知）
+	const agentsMdPath = join(app.getPath('home'), '.pi', 'agent', 'AGENTS.md')
+	if (!existsSync(agentsMdPath)) {
+		try {
+			mkdirSync(join(app.getPath('home'), '.pi', 'agent'), { recursive: true })
+			writeFileSync(agentsMdPath, DEFAULT_AGENTS_MD, 'utf-8')
+		} catch (err) {
+			console.warn('[pi-desktop] could not write default AGENTS.md:', err)
+		}
+	}
 	browser.onState((state) => {
 		mainWindow?.webContents.send('browser:state', state)
 	})
