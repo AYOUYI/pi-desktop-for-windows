@@ -324,7 +324,11 @@ async function bootstrap(): Promise<void> {
 	})
 	if (app.isPackaged) {
 		try {
-			const { autoUpdater } = await import('electron-updater')
+			const updaterModule = await import('electron-updater')
+			// CJS 包在 ESM 下 default 是模块导出，autoUpdater 可能在 default 上
+			const autoUpdater = (updaterModule as { autoUpdater?: typeof import('electron-updater')['autoUpdater'] }).autoUpdater
+				?? (updaterModule as { default?: { autoUpdater?: typeof import('electron-updater')['autoUpdater'] } }).default?.autoUpdater
+			if (!autoUpdater) throw new Error('autoUpdater not found in electron-updater module')
 			autoUpdater.autoDownload = true
 			autoUpdater.logger = console
 			const send = (channel: string, payload: unknown) => {

@@ -9,7 +9,7 @@ publish:
   repo: pi-desktop-for-windows
 
 directories:
-  output: release
+  output: release2
   buildResources: build
 
 files:
