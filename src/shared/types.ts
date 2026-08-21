@@ -80,6 +80,7 @@ export interface WirePiEventPayload {
 export interface PiDesktopApi {
 	getAppInfo(): Promise<AppInfo>
 	selectWorkspace(): Promise<string | null>
+	openPath(path: string): Promise<void>
 	listModels(): Promise<WireModelInfo[]>
 	prompt(text: string, images?: WireImage[]): Promise<void>
 	steer(text: string): Promise<void>

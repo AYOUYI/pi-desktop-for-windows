@@ -19,6 +19,7 @@ import type {
 const api: PiDesktopApi = {
 	getAppInfo: () => ipcRenderer.invoke('app:info'),
 	selectWorkspace: () => ipcRenderer.invoke('workspace:select'),
+	openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
 	listModels: () => ipcRenderer.invoke('pi:listModels'),
 	prompt: (text: string, images?: WireImage[]) => ipcRenderer.invoke('pi:prompt', text, images),
 	steer: (text: string) => ipcRenderer.invoke('pi:steer', text),

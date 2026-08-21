@@ -175,13 +175,23 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 						type="button"
 						className="ctx-item"
 						onClick={() => {
+							void window.piDesktop.openPath(menu.cwd)
+							setMenu(null)
+						}}
+					>
+						📂 在资源管理器中打开
+					</button>
+					<button
+						type="button"
+						className="ctx-item"
+						onClick={() => {
 							hideWorkspace(menu.cwd)
 							setMenu(null)
 						}}
 					>
 						从列表中移除该工作区
 					</button>
-					<div className="ctx-hint">仅隐藏显示，不删除任何文件或会话</div>
+					<div className="ctx-hint">移除仅隐藏显示，不删除任何文件或会话</div>
 				</div>
 			)}
 		</aside>

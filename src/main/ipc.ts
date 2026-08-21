@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain, type BrowserWindow } from 'electron'
+import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron'
 import type { PiBridge } from './pi/bridge'
 import type { SessionsService } from './pi/sessions-service'
 import type { SettingsService } from './pi/settings-service'
@@ -59,6 +59,10 @@ export function registerIpc(
 		})
 		if (result.canceled || result.filePaths.length === 0) return null
 		return result.filePaths[0]
+	})
+
+	ipcMain.handle('shell:openPath', (_event, path: string) => {
+		void shell.openPath(path)
 	})
 
 	ipcMain.handle('pi:listModels', () => bridge.listModels())
