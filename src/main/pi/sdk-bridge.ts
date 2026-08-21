@@ -86,6 +86,11 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 		} else if (m.role === 'toolResult') {
 			const resultText =
 				typeof m.content === 'string' ? m.content : joinType('text', 'text')
+			const images = Array.isArray(m.content)
+				? (m.content as Array<Record<string, unknown>>)
+						.filter((b) => b?.type === 'image' && typeof b.data === 'string' && typeof b.mimeType === 'string')
+						.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+				: []
 			items.push({
 				id,
 				kind: 'tool',
@@ -95,7 +100,8 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 				toolCallId: typeof m.toolCallId === 'string' ? m.toolCallId : id,
 				toolName: typeof m.toolName === 'string' ? m.toolName : 'tool',
 				resultText,
-				isError: m.isError === true
+				isError: m.isError === true,
+				...(images.length > 0 ? { images } : {})
 			})
 		} else if (m.role === 'bashExecution') {
 			const b = message as { command?: unknown; output?: unknown; exitCode?: unknown; isError?: unknown }

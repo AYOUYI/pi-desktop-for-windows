@@ -477,6 +477,50 @@ html[data-bg='on'][data-theme='light'] {
 	opacity: 0.5;
 }
 
+/* ---------- 窗口级拖放遮罩 ---------- */
+
+.drop-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 300;
+	background: rgba(10, 10, 14, 0.55);
+	backdrop-filter: blur(2px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.drop-box {
+	padding: 28px 48px;
+	border: 2px dashed var(--accent);
+	border-radius: 16px;
+	background: var(--bg-elevated);
+	color: var(--text);
+	font-size: 16px;
+	font-weight: 600;
+}
+
+/* ---------- 图片放大预览 ---------- */
+
+.lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: 400;
+	background: rgba(8, 8, 12, 0.82);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: zoom-out;
+}
+
+.lightbox img {
+	max-width: 92vw;
+	max-height: 92vh;
+	border-radius: 8px;
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
 /* ---------- Chips (model/thinking selectors + git stats) ---------- */
 
 .composer-meta {

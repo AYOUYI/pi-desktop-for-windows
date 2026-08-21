@@ -80,12 +80,16 @@ interface SessionStore {
 	browserOpen: boolean
 	browserTabs: WireBrowserState['tabs']
 	browserActiveTabId: string | null
+	/** 全局待发送图片附件（拖放到窗口任意处/按钮选择共用） */
+	attachments: WireImage[]
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
 	setModels(models: WireModelInfo[]): void
 	setDraft(text: string): void
 	editIntoComposer(text: string): void
+	addImageFiles(files: File[]): Promise<void>
+	removeAttachment(index: number): void
 	setBrowserOpen(open: boolean): Promise<void>
 	setBrowserState(state: WireBrowserState): void
 	loadWorkspaces(): Promise<void>
@@ -236,6 +240,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	browserOpen: false,
 	browserTabs: [],
 	browserActiveTabId: null,
+	attachments: [],
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
@@ -246,6 +251,25 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 		if (!activeId) return
 		set((s) => ({ tabs: s.tabs.map((t) => (t.tabId === activeId ? { ...t, draft: text } : t)) }))
 	},
+
+	addImageFiles: async (files) => {
+		const imgs: WireImage[] = []
+		for (const f of files) {
+			if (!f.type.startsWith('image/')) continue
+			if (f.size > 8 * 1024 * 1024) continue
+			const buf = await f.arrayBuffer()
+			const bytes = new Uint8Array(buf)
+			let bin = ''
+			for (let i = 0; i < bytes.length; i += 0x8000) {
+				bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+			}
+			imgs.push({ data: btoa(bin), mimeType: f.type })
+		}
+		if (imgs.length > 0) set((st) => ({ attachments: [...st.attachments, ...imgs].slice(0, 8) }))
+	},
+
+	removeAttachment: (index) =>
+		set((st) => ({ attachments: st.attachments.filter((_, i) => i !== index) })),
 
 	editIntoComposer: (text) => {
 		const activeId = get().activeTabId
@@ -483,6 +507,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	sendPrompt: (text, images) => {
 		const tab = get().tabs.find((t) => t.tabId === get().activeTabId)
 		if (!tab) return
+		const finalImages = images ?? get().attachments
+		if (images === undefined && finalImages.length > 0) set({ attachments: [] })
 		set((s) => ({
 			tabs: s.tabs.map((t) =>
 				t.tabId === tab.tabId
@@ -497,7 +523,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 									text,
 									thinking: '',
 									status: 'complete' as ItemStatus,
-									...(images && images.length > 0 ? { images } : {})
+									...(finalImages && finalImages.length > 0 ? { images: finalImages } : {})
 								}
 							]
 						}
@@ -713,6 +739,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					})()
 				const patch = extractPatch(e.result)
 				const exitCode = extractExitCode(e.result)
+				const resultImages = extractImages(e.result)
 				updateItems((items) =>
 					items.map((it) =>
 						it.kind === 'tool' && it.toolCallId === e.toolCallId
@@ -721,6 +748,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 									status: e.isError ? 'error' : 'complete',
 									resultText,
 									isError: e.isError,
+									images: resultImages ?? it.images,
 									patch: patch ?? it.patch,
 									exitCode: exitCode ?? it.exitCode
 								}

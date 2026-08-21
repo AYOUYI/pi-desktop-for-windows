@@ -89,6 +89,10 @@ export class BrowserService {
 			this.newTab(newUrl)
 			return { action: 'deny' }
 		})
+		// 拖图片进浏览器面板时阻止页面导航（拖放附加图片由应用层处理）
+		view.webContents.on('will-navigate', (e, url) => {
+			if (url.startsWith('file://')) e.preventDefault()
+		})
 		this.win.contentView.addChildView(view)
 		view.setBounds(this.rect)
 		this.tabs.push(entry)

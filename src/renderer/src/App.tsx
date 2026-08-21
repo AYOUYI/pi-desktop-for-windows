@@ -83,6 +83,9 @@ export function App() {
 		return off
 	}, [])
 
+	// 窗口级拖放：图片拖到聊天区任意位置即可附加
+	const [dragOver, setDragOver] = useState(false)
+
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
 			applyEvent(payload.tabId, payload.event)
@@ -107,7 +110,27 @@ export function App() {
 	return (
 		<>
 			<div className="app-bg" />
-			<div className="app-shell">
+			<div
+				className="app-shell"
+				onDragOver={(e) => {
+					e.preventDefault()
+					if (e.dataTransfer.types.includes('Files')) setDragOver(true)
+				}}
+				onDragLeave={(e) => {
+					if (e.currentTarget === e.target) setDragOver(false)
+				}}
+				onDrop={(e) => {
+					e.preventDefault()
+					setDragOver(false)
+					const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+					if (files.length > 0) void useSessionStore.getState().addImageFiles(files)
+				}}
+			>
+				{dragOver && (
+					<div className="drop-overlay">
+						<div className="drop-box">🖼 松开以附加图片</div>
+					</div>
+				)}
 				<Sidebar onOpenSettings={() => setSettingsOpen(true)} />
 				<div className="main-column">
 					<TabBar />

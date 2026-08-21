@@ -122,9 +122,11 @@ export function Composer() {
 	const text = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.draft ?? '')
 	const setText = useSessionStore((s) => s.setDraft)
 	const editSignal = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.editSignal ?? 0)
+	const pendingImages = useSessionStore((s) => s.attachments)
+	const addImageFiles = useSessionStore((s) => s.addImageFiles)
+	const removeAttachment = useSessionStore((s) => s.removeAttachment)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const fileRef = useRef<HTMLInputElement>(null)
-	const [pendingImages, setPendingImages] = useState<WireImage[]>([])
 
 	// 「编辑」回填后聚焦输入框
 	useEffect(() => {
@@ -133,34 +135,16 @@ export function Composer() {
 
 	const busy = tab?.busy ?? false
 
-	const addFiles = async (files: FileList | File[]) => {
-		const imgs: WireImage[] = []
-		for (const f of Array.from(files)) {
-			if (!f.type.startsWith('image/')) continue
-			if (f.size > 8 * 1024 * 1024) continue // 8MB 上限，控制 IPC 体积
-			const buf = await f.arrayBuffer()
-			const bytes = new Uint8Array(buf)
-			let bin = ''
-			for (let i = 0; i < bytes.length; i += 0x8000) {
-				bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
-			}
-			imgs.push({ data: btoa(bin), mimeType: f.type })
-		}
-		if (imgs.length > 0) setPendingImages((cur) => [...cur, ...imgs].slice(0, 8))
-	}
-
 	const submit = async () => {
-		const value = text.trim()
-		if ((!value && pendingImages.length === 0) || !tab) return
+		if ((!text.trim() && pendingImages.length === 0) || !tab) return
 		const images = pendingImages
 		setText('')
-		setPendingImages([])
 		if (busy) {
-			await window.piDesktop.steer(value)
-			sendPrompt(`（steer）${value}`)
+			await window.piDesktop.steer(text)
+			sendPrompt(`（steer）${text}`)
 		} else {
-			sendPrompt(value, images)
-			await window.piDesktop.prompt(value, images)
+			sendPrompt(text, images)
+			await window.piDesktop.prompt(text, images)
 		}
 		textareaRef.current?.focus()
 	}
@@ -176,31 +160,18 @@ export function Composer() {
 		const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'))
 		if (files.length > 0) {
 			e.preventDefault()
-			void addFiles(files)
+			void addImageFiles(files)
 		}
 	}
 
 	return (
-		<div
-			className="composer"
-			onDragOver={(e) => {
-				e.preventDefault()
-			}}
-			onDrop={(e) => {
-				e.preventDefault()
-				if (e.dataTransfer.files.length > 0) void addFiles(e.dataTransfer.files)
-			}}
-		>
+		<div className="composer">
 			{pendingImages.length > 0 && (
 				<div className="composer-attachments">
 					{pendingImages.map((img, i) => (
 						<span key={i} className="attach-thumb">
 							<img src={`data:${img.mimeType};base64,${img.data}`} alt="待发送图片" />
-							<button
-								type="button"
-								className="attach-remove"
-								onClick={() => setPendingImages((cur) => cur.filter((_, j) => j !== i))}
-							>
+							<button type="button" className="attach-remove" onClick={() => removeAttachment(i)}>
 								✕
 							</button>
 						</span>
@@ -247,7 +218,7 @@ export function Composer() {
 						multiple
 						style={{ display: 'none' }}
 						onChange={(e) => {
-							if (e.target.files) void addFiles(e.target.files)
+							if (e.target.files) void addImageFiles(Array.from(e.target.files))
 							e.target.value = ''
 						}}
 					/>

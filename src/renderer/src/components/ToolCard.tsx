@@ -3,6 +3,14 @@ import { createPatch } from 'diff'
 import { useActiveTab, type ChatItem } from '../store/session-store'
 import { DiffView } from './DiffView'
 
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+	return (
+		<div className="lightbox" onClick={onClose}>
+			<img src={src} alt="预览" onClick={(e) => e.stopPropagation()} />
+		</div>
+	)
+}
+
 const TOOL_STATUS_LABEL: Record<string, string> = {
 	running: '运行中',
 	complete: '完成',
@@ -27,6 +35,7 @@ function tailLine(text: string | undefined): string {
 
 export function ToolCard({ item }: { item: ChatItem }) {
 	const [open, setOpen] = useState(false)
+	const [lightbox, setLightbox] = useState<string | null>(null)
 	const cwd = useActiveTab()?.cwd ?? null
 	const statusClass = item.status === 'running' ? 'running' : item.status === 'error' || item.status === 'aborted' ? 'error' : 'done'
 
@@ -67,7 +76,8 @@ export function ToolCard({ item }: { item: ChatItem }) {
 	})()
 
 	return (
-		<div className={`tool-card ${statusClass}`}>
+		<>
+			<div className={`tool-card ${statusClass}`}>
 			<button type="button" className="tool-header" onClick={() => setOpen((v) => !v)}>
 				<span className="tool-status-dot" />
 				<span className="tool-name">{item.toolName ?? 'tool'}</span>
@@ -78,6 +88,21 @@ export function ToolCard({ item }: { item: ChatItem }) {
 			</button>
 			{open && (
 				<div className="tool-detail">
+					{item.images && item.images.length > 0 && (
+						<div className="tool-section">
+							<div className="tool-section-label">图像</div>
+							<div className="msg-images">
+								{item.images.map((img, i) => (
+									<img
+										key={i}
+										src={`data:${img.mimeType};base64,${img.data}`}
+										alt="工具结果图片"
+										onClick={() => setLightbox(`data:${img.mimeType};base64,${img.data}`)}
+									/>
+								))}
+							</div>
+						</div>
+					)}
 					{item.command && (
 						<div className="tool-section">
 							<div className="tool-section-label">命令</div>
@@ -110,8 +135,10 @@ export function ToolCard({ item }: { item: ChatItem }) {
 							<pre>{item.resultText}</pre>
 						</div>
 					)}
-				</div>
-			)}
-		</div>
+					</div>
+				)}
+			</div>
+			{lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
+		</>
 	)
 }
