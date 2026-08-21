@@ -1,7 +1,7 @@
 {
 	"name": "pi-desktop-for-windows",
 	"productName": "Pi Desktop",
-	"version": "0.3.4",
+	"version": "0.3.5",
 	"description": "Windows desktop client for the pi coding agent",
 	"main": "out/main/index.mjs",
 	"author": "pi-desktop contributors",
