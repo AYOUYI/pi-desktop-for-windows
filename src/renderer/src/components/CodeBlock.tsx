@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { highlightCode } from '../lib/highlighter'
+import { highlightCode, setShikiTheme } from '../lib/highlighter'
 
 interface CodeBlockProps {
 	code: string
@@ -11,7 +11,21 @@ export function CodeBlock({ code, lang }: CodeBlockProps) {
 	const [html, setHtml] = useState<string | null>(null)
 	const [debounced, setDebounced] = useState(code)
 	const [copied, setCopied] = useState(false)
+	const [theme, setTheme] = useState<'dark' | 'light'>(() =>
+		document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+	)
 	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+	// 主题切换时切换 shiki 主题并重高亮
+	useEffect(() => {
+		const onTheme = (e: Event) => {
+			const mode = (e as CustomEvent<'dark' | 'light'>).detail
+			setShikiTheme(mode)
+			setTheme(mode)
+		}
+		window.addEventListener('pi-theme-changed', onTheme)
+		return () => window.removeEventListener('pi-theme-changed', onTheme)
+	}, [])
 
 	// Re-highlight at most every 250ms while the block streams in.
 	useEffect(() => {
@@ -20,7 +34,7 @@ export function CodeBlock({ code, lang }: CodeBlockProps) {
 		return () => clearTimeout(timerRef.current)
 	}, [code])
 
-	const cacheKey = useMemo(() => `${lang} ${debounced}`, [lang, debounced])
+	const cacheKey = useMemo(() => `${lang} ${debounced} ${theme}`, [lang, debounced, theme])
 	useEffect(() => {
 		let cancelled = false
 		void highlightCode(debounced, lang).then((out) => {
@@ -29,7 +43,7 @@ export function CodeBlock({ code, lang }: CodeBlockProps) {
 		return () => {
 			cancelled = true
 		}
-	}, [cacheKey, debounced, lang])
+	}, [cacheKey, debounced, lang, theme])
 
 	const copy = async () => {
 		try {

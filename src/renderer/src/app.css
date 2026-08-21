@@ -15,6 +15,8 @@
 	--radius: 8px;
 	--font-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
 	--base-font: 14px;
+	--code-bg: #101017;
+	--code-text: #dcdde4;
 }
 
 :root[data-theme='light'] {
@@ -29,6 +31,8 @@
 	--danger: #c93851;
 	--ok: #1f8f5f;
 	--warn: #a87514;
+	--code-bg: #f6f8fa;
+	--code-text: #24252b;
 }
 
 * {
@@ -1086,7 +1090,7 @@ html[data-bg='on'][data-theme='light'] {
 	margin: 8px 0;
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
-	background: #101017;
+	background: var(--code-bg);
 	overflow: hidden;
 }
 
@@ -1144,6 +1148,7 @@ html[data-bg='on'][data-theme='light'] {
 	font-family: var(--font-mono);
 	font-size: 12.5px;
 	line-height: 1.55;
+	color: var(--code-text);
 }
 
 /* ---------- Tool cards ---------- */
@@ -1265,11 +1270,11 @@ html[data-bg='on'][data-theme='light'] {
 }
 
 .tool-detail pre.tool-command {
-	background: #101017;
+	background: var(--code-bg);
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	padding: 8px 10px;
-	color: #c9f2d9;
+	color: var(--code-text);
 }
 
 @keyframes pulse {
@@ -1284,7 +1289,7 @@ html[data-bg='on'][data-theme='light'] {
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	overflow-x: auto;
-	background: #101017;
+	background: var(--code-bg);
 }
 
 .diff-stats {

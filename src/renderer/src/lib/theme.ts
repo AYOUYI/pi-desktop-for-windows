@@ -59,4 +59,5 @@ export function applyPrefs(prefs: ThemePrefs): void {
 	root.dataset.bg = prefs.bgName ? 'on' : 'off'
 	root.style.setProperty('--bg-image', prefs.bgName ? `url('pibg://local/${prefs.bgName}')` : 'none')
 	root.style.setProperty('--bg-blur', `${prefs.bgBlur}px`)
+	window.dispatchEvent(new CustomEvent('pi-theme-changed', { detail: prefs.theme }))
 }
