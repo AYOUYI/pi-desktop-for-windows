@@ -82,6 +82,8 @@ interface SessionStore {
 	browserActiveTabId: string | null
 	/** 全局待发送图片附件（拖放到窗口任意处/按钮选择共用） */
 	attachments: WireImage[]
+	/** 应用内更新状态 */
+	update: { status: 'idle' } | { status: 'downloading'; percent?: number; version?: string } | { status: 'ready'; version?: string } | { status: 'error'; message?: string }
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
@@ -92,6 +94,7 @@ interface SessionStore {
 	removeAttachment(index: number): void
 	setBrowserOpen(open: boolean): Promise<void>
 	setBrowserState(state: WireBrowserState): void
+	setUpdate(state: { status: 'idle' } | { status: 'downloading'; percent?: number; version?: string } | { status: 'ready'; version?: string } | { status: 'error'; message?: string }): void
 	loadWorkspaces(): Promise<void>
 	refreshGitStats(): Promise<void>
 	createTab(cwd: string): Promise<void>
@@ -263,6 +266,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 	browserTabs: [],
 	browserActiveTabId: null,
 	attachments: [],
+	update: { status: 'idle' },
 
 	setReady: (ready) => set({ ready }),
 	setNotice: (notice) => set({ notice }),
@@ -310,6 +314,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
 	setBrowserState: (state) =>
 		set({ browserOpen: state.open, browserTabs: state.tabs, browserActiveTabId: state.activeTabId }),
+
+	setUpdate: (state) => set({ update: state }),
 
 	loadWorkspaces: async () => {
 		try {

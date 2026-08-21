@@ -2,6 +2,12 @@ appId: com.pidesktopforwindows.app
 productName: Pi Desktop
 copyright: Copyright © 2026 pi-desktop contributors
 
+# 自动更新：electron-updater 从对应 GitHub Releases 读取 latest.yml
+publish:
+  provider: github
+  owner: AYOUYI
+  repo: pi-desktop-for-windows
+
 directories:
   output: release
   buildResources: build

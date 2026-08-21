@@ -19,6 +19,7 @@ function MainHeader() {
 	const exportActiveHtml = useSessionStore((s) => s.exportActiveHtml)
 	const browserOpen = useSessionStore((s) => s.browserOpen)
 	const setBrowserOpen = useSessionStore((s) => s.setBrowserOpen)
+	const update = useSessionStore((s) => s.update)
 	return (
 		<div className="main-header">
 			<span className="main-title">{tab ? (tab.busy ? 'pi 正在工作…' : 'pi') : 'Pi Desktop'}</span>
@@ -27,6 +28,19 @@ function MainHeader() {
 					{tab.usage.turns} 轮 · {formatTokens(tab.usage.totalTokens)} tokens
 					{tab.usage.totalCost > 0 && ` · $${tab.usage.totalCost.toFixed(4)}`}
 				</span>
+			)}
+			{update.status === 'ready' && (
+				<button
+					type="button"
+					className="update-btn"
+					title="下载完成，点击重启安装新版本"
+					onClick={() => void window.piDesktop.installUpdate()}
+				>
+					↻ 重启更新 {update.version ? `v${update.version}` : ''}
+				</button>
+			)}
+			{update.status === 'downloading' && (
+				<span className="update-progress">更新下载中 {update.percent != null ? `${update.percent}%` : ''}</span>
 			)}
 			{tab && (
 				<span className="header-actions">
@@ -81,6 +95,13 @@ export function App() {
 			useSessionStore.getState().setBrowserState(state)
 		})
 		return off
+	}, [])
+
+	// 应用内更新事件流
+	useEffect(() => {
+		return window.piDesktop.onUpdateEvent((state) => {
+			useSessionStore.getState().setUpdate(state)
+		})
 	}, [])
 
 	// 窗口级拖放：图片拖到聊天区任意位置即可附加

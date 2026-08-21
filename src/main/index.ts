@@ -318,13 +318,29 @@ async function bootstrap(): Promise<void> {
 	browser?.attach(mainWindow!)
 	createTray()
 
-	// 自动更新：仅在打包后且显式配置更新源时启用（generic provider）。
-	if (app.isPackaged && process.env.PIDESKTOP_UPDATE_URL) {
+	// ---- 应用内自动更新（GitHub Releases，feed 配置内置于打包产物） ----
+	if (app.isPackaged) {
 		try {
 			const { autoUpdater } = await import('electron-updater')
-			autoUpdater.setFeedURL({ provider: 'generic', url: process.env.PIDESKTOP_UPDATE_URL })
+			autoUpdater.autoDownload = true
 			autoUpdater.logger = console
-			void autoUpdater.checkForUpdates()
+			const send = (channel: string, payload: unknown) => {
+				mainWindow?.webContents.send(channel, payload)
+			}
+			autoUpdater.on('update-available', (info) => send('update:event', { status: 'downloading', version: info.version }))
+			autoUpdater.on('download-progress', (p) => send('update:event', { status: 'downloading', percent: Math.round(p.percent) }))
+			autoUpdater.on('update-downloaded', (info) => send('update:event', { status: 'ready', version: info.version }))
+			autoUpdater.on('error', (err) => {
+				console.warn('[pi-desktop] updater:', err.message)
+				send('update:event', { status: 'error', message: err.message })
+			})
+			ipcMain.handle('update:install', () => {
+				autoUpdater.quitAndInstall()
+			})
+			// 启动 15 秒后首查，之后每 4 小时复查
+			const check = () => void autoUpdater.checkForUpdates().catch(() => {})
+			setTimeout(check, 15_000)
+			setInterval(check, 4 * 60 * 60 * 1000)
 		} catch (err) {
 			console.warn('[pi-desktop] auto-update disabled:', err)
 		}

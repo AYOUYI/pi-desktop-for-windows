@@ -111,6 +111,8 @@ export interface PiDesktopApi {
 	setAppBehavior(patch: Partial<WireAppBehavior>): Promise<WireAppBehavior>
 	themePickBackground(): Promise<{ name: string } | null>
 	themeClearBackground(): Promise<void>
+	onUpdateEvent(cb: (state: WireUpdateState) => void): () => void
+	installUpdate(): Promise<void>
 
 	// ---- Settings ----
 	listProviders(): Promise<WireProviderStatus[]>
@@ -140,6 +142,14 @@ export interface WireBrowserState {
 	open: boolean
 	tabs: WireBrowserTab[]
 	activeTabId: string | null
+}
+
+/** 应用内更新状态（electron-updater 事件流）。 */
+export interface WireUpdateState {
+	status: 'downloading' | 'ready' | 'error'
+	version?: string
+	percent?: number
+	message?: string
 }
 
 export interface WireProviderStatus {

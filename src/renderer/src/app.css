@@ -974,6 +974,30 @@ html[data-bg='on'][data-theme='light'] {
 	background: rgba(124, 108, 240, 0.1);
 }
 
+.update-btn {
+	padding: 4px 12px;
+	border: none;
+	border-radius: 6px;
+	background: var(--ok);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	margin-left: 8px;
+	flex-shrink: 0;
+}
+
+.update-btn:hover {
+	filter: brightness(1.12);
+}
+
+.update-progress {
+	font-size: 11.5px;
+	color: var(--text-dim);
+	margin-left: 8px;
+	flex-shrink: 0;
+}
+
 .header-btn:disabled {
 	opacity: 0.4;
 	cursor: default;

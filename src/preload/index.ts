@@ -12,6 +12,7 @@ import type {
 	WireSessionInfo,
 	WireSessionListItem,
 	WireThinkingLevel,
+	WireUpdateState,
 	WireWorkspaceGroup
 } from '../shared/types'
 
@@ -60,6 +61,12 @@ const api: PiDesktopApi = {
 	getAppBehavior: () => ipcRenderer.invoke('app:getBehavior') as Promise<WireAppBehavior>,
 	themePickBackground: () => ipcRenderer.invoke('theme:pickBackground') as Promise<{ name: string } | null>,
 	themeClearBackground: () => ipcRenderer.invoke('theme:clearBackground'),
+	onUpdateEvent: (cb: (state: WireUpdateState) => void) => {
+		const listener = (_e: Electron.IpcRendererEvent, state: WireUpdateState) => cb(state)
+		ipcRenderer.on('update:event', listener)
+		return () => ipcRenderer.removeListener('update:event', listener)
+	},
+	installUpdate: () => ipcRenderer.invoke('update:install'),
 	setAppBehavior: (patch: Partial<WireAppBehavior>) =>
 		ipcRenderer.invoke('app:setBehavior', patch) as Promise<WireAppBehavior>,
 
