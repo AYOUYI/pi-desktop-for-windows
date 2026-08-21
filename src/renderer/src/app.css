@@ -414,6 +414,40 @@ html[data-bg='on'][data-theme='light'] {
 	justify-content: flex-end;
 }
 
+/* ---------- show_image 消息与工具图像 ---------- */
+
+.show-image {
+	max-width: 420px;
+	max-height: 320px;
+	border-radius: var(--radius);
+	border: 1px solid var(--border);
+	object-fit: contain;
+	cursor: zoom-in;
+	margin: 4px 0;
+}
+
+.show-image-caption {
+	font-size: 11.5px;
+	color: var(--text-dim);
+	font-family: var(--font-mono);
+}
+
+.tool-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 6px 12px 10px;
+}
+
+.tool-images img {
+	max-width: 260px;
+	max-height: 180px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	object-fit: cover;
+	cursor: zoom-in;
+}
+
 /* ---------- Composer 附件 ---------- */
 
 .composer-attachments {

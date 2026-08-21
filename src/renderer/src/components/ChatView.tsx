@@ -1,10 +1,43 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { VList, type VListHandle } from 'virtua'
-import { useActiveTab, useSessionStore } from '../store/session-store'
+import { useActiveTab, useSessionStore, type ChatItem } from '../store/session-store'
 import { MessageBubble } from './MessageBubble'
 import { ToolCard } from './ToolCard'
 
 const BOTTOM_THRESHOLD = 48
+
+/** show_image 的结果直接渲染为对话里的图片消息（无工具卡片/参数） */
+function ShowImageMessage({ item }: { item: ChatItem }) {
+	const [zoom, setZoom] = useState<string | null>(null)
+	let caption = ''
+	try {
+		const args = JSON.parse(item.argsPreview ?? '{}') as { caption?: string; path?: string }
+		caption = args.caption ?? args.path ?? ''
+	} catch {
+		caption = ''
+	}
+	const name = caption.split(/[\\/]/).pop() || caption
+	return (
+		<div className="msg msg-assistant">
+			<div className="msg-role">pi</div>
+			{item.images?.map((img, i) => (
+				<img
+					key={i}
+					className="show-image"
+					src={`data:${img.mimeType};base64,${img.data}`}
+					alt={caption || '图片'}
+					onClick={() => setZoom(`data:${img.mimeType};base64,${img.data}`)}
+				/>
+			))}
+			{caption && <div className="show-image-caption">{name}</div>}
+			{zoom && (
+				<div className="lightbox" onClick={() => setZoom(null)}>
+					<img src={zoom} alt="预览" onClick={(e) => e.stopPropagation()} />
+				</div>
+			)}
+		</div>
+	)
+}
 
 export function ChatView() {
 	const tab = useActiveTab()
@@ -45,7 +78,15 @@ export function ChatView() {
 		<VList ref={listRef} onScroll={onScroll} className="chat-scroll">
 			{items.map((item) => (
 				<div key={item.id} className="chat-item-row">
-					{item.kind === 'tool' ? <ToolCard item={item} /> : <MessageBubble item={item} />}
+					{item.kind === 'tool' ? (
+						item.toolName === 'show_image' && item.images && item.images.length > 0 ? (
+							<ShowImageMessage item={item} />
+						) : (
+							<ToolCard item={item} />
+						)
+					) : (
+						<MessageBubble item={item} />
+					)}
 				</div>
 			))}
 		</VList>

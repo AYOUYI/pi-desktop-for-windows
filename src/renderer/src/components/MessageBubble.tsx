@@ -21,12 +21,31 @@ function IconEdit() {
 	)
 }
 
-function MsgActions({ item }: { item: ChatItem }) {
+/**
+ * 剥离混在正文里的 <think>/<thinking> 标签（部分供应商/中转把思考当文本输出）。
+ * 流式中未闭合的标签也视为思考（正文尚未开始）。
+ */
+function splitThink(text: string): { think: string; body: string } {
+	let think = ''
+	let body = text
+	body = body.replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, (_m, inner: string) => {
+		think += inner
+		return ''
+	})
+	const open = /<think(?:ing)>([\s\S]*)$/i.exec(body)
+	if (open) {
+		think += open[1]
+		body = body.slice(0, open.index)
+	}
+	return { think: think.trim(), body: body.trim() }
+}
+
+function MsgActions({ item, text }: { item: ChatItem; text?: string }) {
 	const [copied, setCopied] = useState(false)
 	const editIntoComposer = useSessionStore((s) => s.editIntoComposer)
 	const copy = async () => {
 		try {
-			await navigator.clipboard.writeText(item.text)
+			await navigator.clipboard.writeText(text ?? item.text)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 1500)
 		} catch {
@@ -90,15 +109,17 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 	}
 
 	if (item.kind === 'assistant') {
+		const { think: inlineThink, body } = splitThink(item.text)
+		const thinking = [item.thinking, inlineThink].filter(Boolean).join('\n')
 		return (
 			<div className="msg msg-assistant">
 				<div className="msg-role">
 					pi {item.status === 'streaming' && <span className="spinner" />}
 				</div>
-				{item.thinking && (
+				{thinking && (
 					<details className="thinking">
 						<summary>思考过程</summary>
-						<pre>{item.thinking}</pre>
+						<pre>{thinking}</pre>
 					</details>
 				)}
 				{item.images && item.images.length > 0 && (
@@ -113,7 +134,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						<div className="msg-error">出错了：{item.errorText}</div>
 					) : (
 						<ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-							{item.text || (item.status === 'streaming' ? '' : '（无输出）')}
+							{body || (item.status === 'streaming' ? '' : '（无输出）')}
 						</ReactMarkdown>
 					)}
 				</div>
@@ -125,7 +146,7 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						{item.usage && item.usage.costTotal > 0 && <span>${item.usage.costTotal.toFixed(4)}</span>}
 					</div>
 				)}
-				{item.text && item.status !== 'streaming' && <MsgActions item={item} />}
+				{body && item.status !== 'streaming' && <MsgActions item={item} text={body} />}
 			</div>
 		)
 	}

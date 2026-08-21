@@ -86,23 +86,20 @@ export function ToolCard({ item }: { item: ChatItem }) {
 				<span className="tool-status">{TOOL_STATUS_LABEL[item.status] ?? item.status}</span>
 				<span className="tool-chevron">{open ? '▾' : '▸'}</span>
 			</button>
+			{item.images && item.images.length > 0 && (
+				<div className="tool-images">
+					{item.images.map((img, i) => (
+						<img
+							key={i}
+							src={`data:${img.mimeType};base64,${img.data}`}
+							alt="工具结果图片"
+							onClick={() => setLightbox(`data:${img.mimeType};base64,${img.data}`)}
+						/>
+					))}
+				</div>
+			)}
 			{open && (
 				<div className="tool-detail">
-					{item.images && item.images.length > 0 && (
-						<div className="tool-section">
-							<div className="tool-section-label">图像</div>
-							<div className="msg-images">
-								{item.images.map((img, i) => (
-									<img
-										key={i}
-										src={`data:${img.mimeType};base64,${img.data}`}
-										alt="工具结果图片"
-										onClick={() => setLightbox(`data:${img.mimeType};base64,${img.data}`)}
-									/>
-								))}
-							</div>
-						</div>
-					)}
 					{item.command && (
 						<div className="tool-section">
 							<div className="tool-section-label">命令</div>
