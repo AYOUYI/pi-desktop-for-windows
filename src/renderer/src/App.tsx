@@ -86,6 +86,13 @@ export function App() {
 	// 窗口级拖放：图片拖到聊天区任意位置即可附加
 	const [dragOver, setDragOver] = useState(false)
 
+	// 兜底：拖放被取消（如按 Esc）时清除遮罩
+	useEffect(() => {
+		const clear = () => setDragOver(false)
+		document.addEventListener('dragend', clear)
+		return () => document.removeEventListener('dragend', clear)
+	}, [])
+
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
 			applyEvent(payload.tabId, payload.event)
@@ -117,7 +124,9 @@ export function App() {
 					if (e.dataTransfer.types.includes('Files')) setDragOver(true)
 				}}
 				onDragLeave={(e) => {
-					if (e.currentTarget === e.target) setDragOver(false)
+					// relatedTarget 为 null 表示指针离开了窗口；从子元素移出时 target 是子元素，
+					// 不能用 currentTarget === target 判断
+					if (!e.relatedTarget) setDragOver(false)
 				}}
 				onDrop={(e) => {
 					e.preventDefault()
