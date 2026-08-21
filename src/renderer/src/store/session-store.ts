@@ -159,6 +159,21 @@ function extractUsage(message: unknown): ItemUsage | undefined {
 	}
 }
 
+function extractDetailImages(result: unknown): WireImage[] | undefined {
+	if (!result || typeof result !== 'object') return undefined
+	const details = (result as { details?: unknown }).details
+	if (!details || typeof details !== 'object') return undefined
+	const imgs = (details as { images?: unknown }).images
+	if (!Array.isArray(imgs)) return undefined
+	const out = imgs
+		.filter(
+			(b): b is Record<string, unknown> =>
+				!!b && typeof b === 'object' && typeof (b as { data?: unknown }).data === 'string' && typeof (b as { mimeType?: unknown }).mimeType === 'string'
+		)
+		.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+	return out.length > 0 ? out : undefined
+}
+
 function extractImages(message: unknown): WireImage[] | undefined {
 	if (!message || typeof message !== 'object') return undefined
 	const content = (message as { content?: unknown }).content
@@ -739,7 +754,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					})()
 				const patch = extractPatch(e.result)
 				const exitCode = extractExitCode(e.result)
-				const resultImages = extractImages(e.result)
+				const resultImages = extractImages(e.result) ?? extractDetailImages(e.result)
 				updateItems((items) =>
 					items.map((it) =>
 						it.kind === 'tool' && it.toolCallId === e.toolCallId

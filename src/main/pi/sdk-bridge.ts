@@ -11,6 +11,7 @@ import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListene
 import type { BrowserService } from './browser-service'
 import type { WireImage, WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
 import { serializeSessionEvent } from './event-serializer'
+import { createShowImageTool } from './image-tool'
 
 /** Convert persisted AgentMessages into renderer transcript items (resume replay). */
 function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
@@ -86,11 +87,18 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 		} else if (m.role === 'toolResult') {
 			const resultText =
 				typeof m.content === 'string' ? m.content : joinType('text', 'text')
-			const images = Array.isArray(m.content)
+			const contentImages = Array.isArray(m.content)
 				? (m.content as Array<Record<string, unknown>>)
 						.filter((b) => b?.type === 'image' && typeof b.data === 'string' && typeof b.mimeType === 'string')
 						.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
 				: []
+			const detailImagesRaw = (m as { details?: { images?: unknown } }).details?.images
+			const detailImages = Array.isArray(detailImagesRaw)
+				? (detailImagesRaw as Array<Record<string, unknown>>)
+						.filter((b) => b?.data && typeof b.data === 'string' && typeof b.mimeType === 'string')
+						.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+				: []
+			const images = [...contentImages, ...detailImages]
 			items.push({
 				id,
 				kind: 'tool',
@@ -203,7 +211,7 @@ export class SdkBridge implements PiBridge {
 			modelRuntime: this.modelRuntime,
 			...(model ? { model } : {}),
 			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}),
-			...(this.browser ? { customTools: this.browser.tools() } : {})
+			...{ customTools: [...(this.browser ? this.browser.tools() : []), createShowImageTool(options.cwd)] }
 		})
 
 		return this.adoptSession(options.tabId, session, null, options.cwd, model, options.thinkingLevel)
@@ -222,7 +230,7 @@ export class SdkBridge implements PiBridge {
 			modelRuntime: this.modelRuntime,
 			sessionManager,
 			...(model ? { model } : {}),
-			...(this.browser ? { customTools: this.browser.tools() } : {})
+			...{ customTools: [...(this.browser ? this.browser.tools() : []), createShowImageTool(options.cwd)] }
 		})
 
 		const name = sessionManager.getSessionName?.() ?? null
