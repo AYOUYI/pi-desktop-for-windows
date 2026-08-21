@@ -1,11 +1,16 @@
 import {
 	createAgentSession,
+	DefaultResourceLoader,
+	getAgentDir,
 	ModelRuntime,
 	SessionManager,
+	SettingsManager,
 	type AgentSession,
 	type JsonAgentSessionEvent
 } from '@earendil-works/pi-coding-agent'
 import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { Model } from '@earendil-works/pi-ai'
 import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListener } from './bridge'
 import type { BrowserService } from './browser-service'
@@ -146,6 +151,14 @@ interface LiveSession {
  * In-process pi bridge: drives the pi SDK directly from the Electron main
  * process, exactly like the official TUI does.
  */
+/**
+ * 跨工具的 agents 标准技能目录（ZCode 等也用这里）。
+ * agent 常按此约定安装技能，一并纳入 pi 的搜索路径，装在哪都能被发现。
+ */
+function agentsSkillDir(): string {
+	return join(homedir(), '.agents', 'skills')
+}
+
 export class SdkBridge implements PiBridge {
 	readonly kind = 'sdk' as const
 
@@ -162,6 +175,21 @@ export class SdkBridge implements PiBridge {
 	/** Shared runtime for services like SettingsService. */
 	getRuntime(): ModelRuntime | null {
 		return this.modelRuntime
+	}
+
+	/** 构造带额外技能目录的资源加载器（~/.agents/skills 与 ~/.pi/agent/skills 并存）。 */
+	private async buildLoader(cwd: string): Promise<DefaultResourceLoader> {
+		const agentDir = getAgentDir()
+		const settingsManager = await SettingsManager.create(cwd, agentDir)
+		const extraDir = agentsSkillDir()
+		const loader = new DefaultResourceLoader({
+			cwd,
+			agentDir,
+			settingsManager,
+			additionalSkillPaths: existsSync(extraDir) ? [extraDir] : []
+		})
+		await loader.reload()
+		return loader
 	}
 
 	onEvent(listener: PiEventListener): void {
@@ -211,9 +239,11 @@ export class SdkBridge implements PiBridge {
 		await this.disposeSession(options.tabId)
 
 		const model = options.modelId ? this.findModel(options.modelId) : undefined
+		const resourceLoader = await this.buildLoader(options.cwd)
 		const { session } = await createAgentSession({
 			cwd: options.cwd,
 			modelRuntime: this.modelRuntime,
+			resourceLoader,
 			...(model ? { model } : {}),
 			...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}),
 			...{ customTools: [...(this.browser ? this.browser.tools() : []), createShowImageTool(options.cwd)] }
@@ -230,10 +260,12 @@ export class SdkBridge implements PiBridge {
 
 		const sessionManager = SessionManager.open(options.sessionPath, undefined, options.cwd)
 		const model = options.modelId ? this.findModel(options.modelId) : undefined
+		const resourceLoader = await this.buildLoader(options.cwd)
 		const { session } = await createAgentSession({
 			cwd: options.cwd,
 			modelRuntime: this.modelRuntime,
 			sessionManager,
+			resourceLoader,
 			...(model ? { model } : {}),
 			...{ customTools: [...(this.browser ? this.browser.tools() : []), createShowImageTool(options.cwd)] }
 		})

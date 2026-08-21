@@ -537,7 +537,7 @@ function SkillsTab() {
 				))
 			)}
 			{error && <div className="settings-error">{error}</div>}
-			<div className="settings-hint">项目级技能放在工作区 .pi/skills/，全局技能在 ~/.pi/agent/skills/。</div>
+			<div className="settings-hint">技能搜索位置：全局 ~/.pi/agent/skills/、跨工具标准 ~/.agents/skills/、项目 .pi/skills/（三处均自动发现）。</div>
 		</div>
 	)
 }

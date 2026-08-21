@@ -138,10 +138,13 @@ export class SettingsService {
 	// ---------- Skills ----------
 
 	listSkills(cwd: string | null): WireSkillInfo[] {
+		// 同时列出 ~/.agents/skills（跨工具标准目录，agent 常装到这里）
+		const agentsDir = join(homedir(), '.agents', 'skills')
+		const extra = existsSync(agentsDir) ? [agentsDir] : []
 		const result = loadSkills({
 			cwd: cwd ?? homedir(),
 			agentDir: this.agentDir,
-			skillPaths: [],
+			skillPaths: extra,
 			includeDefaults: true
 		})
 		return result.skills.map((s) => ({
