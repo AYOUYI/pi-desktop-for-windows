@@ -76,6 +76,13 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 		return (
 			<div className="msg msg-user">
 				<div className="msg-role">你</div>
+				{item.images && item.images.length > 0 && (
+					<div className="msg-images">
+						{item.images.map((img, i) => (
+							<img key={i} src={`data:${img.mimeType};base64,${img.data}`} alt="附件图片" />
+						))}
+					</div>
+				)}
 				<div className="msg-body user-text">{item.text}</div>
 				{item.text && <MsgActions item={item} />}
 			</div>
@@ -93,6 +100,13 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 						<summary>思考过程</summary>
 						<pre>{item.thinking}</pre>
 					</details>
+				)}
+				{item.images && item.images.length > 0 && (
+					<div className="msg-images">
+						{item.images.map((img, i) => (
+							<img key={i} src={`data:${img.mimeType};base64,${img.data}`} alt="消息图片" />
+						))}
+					</div>
 				)}
 				<div className="msg-body">
 					{item.status === 'error' && item.errorText ? (

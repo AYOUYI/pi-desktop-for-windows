@@ -1,5 +1,5 @@
 import type { JsonAgentSessionEvent } from '@earendil-works/pi-coding-agent'
-import type { WireModelInfo, WireSessionInfo, WireThinkingLevel } from '../../shared/types'
+import type { WireImage, WireModelInfo, WireSessionInfo, WireThinkingLevel } from '../../shared/types'
 
 export type PiEventListener = (tabId: string, event: JsonAgentSessionEvent) => void
 
@@ -36,7 +36,7 @@ export interface PiBridge {
 	openSession(options: OpenSessionOptions): Promise<WireSessionInfo>
 	forkSession(sourceTabId: string, newTabId: string): Promise<WireSessionInfo>
 	exportHtml(tabId: string, outputPath?: string): Promise<string>
-	prompt(tabId: string, text: string): void
+	prompt(tabId: string, text: string, images?: WireImage[]): void
 	steer(tabId: string, text: string): void
 	abort(tabId: string): void
 	setModel(tabId: string, modelId: string): Promise<void>

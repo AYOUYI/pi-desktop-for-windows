@@ -394,6 +394,89 @@ html[data-bg='on'][data-theme='light'] {
 	border-color: var(--accent);
 }
 
+.msg-images {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 4px 0;
+}
+
+.msg-images img {
+	max-width: 220px;
+	max-height: 160px;
+	border-radius: var(--radius);
+	border: 1px solid var(--border);
+	object-fit: cover;
+	cursor: pointer;
+}
+
+.msg-user .msg-images {
+	justify-content: flex-end;
+}
+
+/* ---------- Composer 附件 ---------- */
+
+.composer-attachments {
+	max-width: 812px;
+	margin: 0 auto 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.attach-thumb {
+	position: relative;
+	display: inline-block;
+}
+
+.attach-thumb img {
+	width: 64px;
+	height: 64px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+}
+
+.attach-remove {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 18px;
+	height: 18px;
+	border: none;
+	border-radius: 50%;
+	background: var(--danger);
+	color: #fff;
+	font-size: 10px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.attach-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--bg-input);
+	color: var(--text-dim);
+	font-size: 14px;
+	cursor: pointer;
+}
+
+.attach-btn:hover:not(:disabled) {
+	border-color: var(--accent);
+	color: var(--text);
+}
+
+.attach-btn:disabled {
+	opacity: 0.5;
+}
+
 /* ---------- Chips (model/thinking selectors + git stats) ---------- */
 
 .composer-meta {

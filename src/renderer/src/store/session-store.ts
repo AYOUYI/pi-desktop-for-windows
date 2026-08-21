@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { JsonAgentSessionEvent } from '@earendil-works/pi-coding-agent'
 import type {
 	WireGitStats,
+	WireImage,
 	WireModelInfo,
 	WireSessionInfo,
 	WireThinkingLevel,
@@ -34,6 +35,8 @@ export interface ChatItem {
 	errorText?: string
 	/** model id actually used for this assistant turn (from the message itself) */
 	modelUsed?: string
+	/** 用户/助手消息携带的图像附件 */
+	images?: WireImage[]
 	usage?: ItemUsage
 	toolCallId?: string
 	toolName?: string
@@ -95,7 +98,7 @@ interface SessionStore {
 	exportActiveHtml(): Promise<void>
 	setModelActive(modelId: string): Promise<void>
 	setThinkingActive(level: WireThinkingLevel): Promise<void>
-	sendPrompt(text: string): void
+	sendPrompt(text: string, images?: WireImage[]): void
 	applyEvent(tabId: string, event: JsonAgentSessionEvent): void
 }
 
@@ -150,6 +153,20 @@ function extractUsage(message: unknown): ItemUsage | undefined {
 		totalTokens: num(usage.totalTokens),
 		costTotal: num(cost?.total)
 	}
+}
+
+function extractImages(message: unknown): WireImage[] | undefined {
+	if (!message || typeof message !== 'object') return undefined
+	const content = (message as { content?: unknown }).content
+	if (!Array.isArray(content)) return undefined
+	const imgs = content
+		.filter(
+			(b): b is Record<string, unknown> =>
+				!!b && typeof b === 'object' && (b as { type?: unknown }).type === 'image'
+		)
+		.filter((b) => typeof b.data === 'string' && typeof b.mimeType === 'string')
+		.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+	return imgs.length > 0 ? imgs : undefined
 }
 
 function parseToolMeta(args: unknown): { path?: string; command?: string; edits?: number; writeContent?: string } {
@@ -463,7 +480,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 		}
 	},
 
-	sendPrompt: (text) => {
+	sendPrompt: (text, images) => {
 		const tab = get().tabs.find((t) => t.tabId === get().activeTabId)
 		if (!tab) return
 		set((s) => ({
@@ -472,7 +489,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 					? {
 							...t,
 							followSignal: t.followSignal + 1,
-							items: [...t.items, { id: `local-${Date.now()}`, kind: 'user', text, thinking: '', status: 'complete' as ItemStatus }]
+							items: [
+								...t.items,
+								{
+									id: `local-${Date.now()}`,
+									kind: 'user',
+									text,
+									thinking: '',
+									status: 'complete' as ItemStatus,
+									...(images && images.length > 0 ? { images } : {})
+								}
+							]
 						}
 					: t
 			)
@@ -580,6 +607,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 										status,
 										errorText: errorText ?? it.errorText,
 										modelUsed: modelUsed ?? it.modelUsed,
+										images: extractImages(message) ?? it.images,
 										usage: usage ?? it.usage
 									}
 								: it

@@ -6,6 +6,7 @@ import type {
 	AppInfo,
 	WireCustomProviderRequest,
 	WireGeneralSettingsPatch,
+	WireImage,
 	WireThinkingLevel
 } from '../shared/types'
 
@@ -94,8 +95,8 @@ export function registerIpc(
 
 	// ---- Agent commands (active tab) ----
 
-	ipcMain.handle('pi:prompt', (_event, text: string) => {
-		bridge.prompt(activeTab, text)
+	ipcMain.handle('pi:prompt', (_event, text: string, images?: WireImage[]) => {
+		bridge.prompt(activeTab, text, images)
 	})
 
 	ipcMain.handle('pi:steer', (_event, text: string) => {

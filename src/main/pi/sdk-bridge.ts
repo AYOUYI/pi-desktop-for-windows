@@ -9,7 +9,7 @@ import { existsSync } from 'node:fs'
 import type { Model } from '@earendil-works/pi-ai'
 import type { CreateSessionOptions, OpenSessionOptions, PiBridge, PiEventListener } from './bridge'
 import type { BrowserService } from './browser-service'
-import type { WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
+import type { WireImage, WireModelInfo, WireSessionInfo, WireThinkingLevel, WireTranscriptItem } from '../../shared/types'
 import { serializeSessionEvent } from './event-serializer'
 
 /** Convert persisted AgentMessages into renderer transcript items (resume replay). */
@@ -40,17 +40,37 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 
 		if (m.role === 'user') {
 			const text = typeof m.content === 'string' ? m.content : joinType('text', 'text')
-			if (text) items.push({ id, kind: 'user', text, thinking: '', status: 'complete' })
+			const images = Array.isArray(m.content)
+				? (m.content as Array<Record<string, unknown>>)
+						.filter((b) => b?.type === 'image' && typeof b.data === 'string' && typeof b.mimeType === 'string')
+						.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+				: []
+			if (text || images.length > 0) {
+				items.push({
+					id,
+					kind: 'user',
+					text,
+					thinking: '',
+					status: 'complete',
+					...(images.length > 0 ? { images } : {})
+				})
+			}
 		} else if (m.role === 'assistant') {
 			const usage = m.usage
 			const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
 			const cost = usage?.cost as Record<string, unknown> | undefined
+			const images = Array.isArray(m.content)
+				? (m.content as Array<Record<string, unknown>>)
+						.filter((b) => b?.type === 'image' && typeof b.data === 'string' && typeof b.mimeType === 'string')
+						.map((b) => ({ data: String(b.data), mimeType: String(b.mimeType) }))
+				: []
 			items.push({
 				id,
 				kind: 'assistant',
 				text: joinType('text', 'text'),
 				thinking: joinType('thinking', 'thinking'),
 				status: 'complete',
+				...(images.length > 0 ? { images } : {}),
 				...(typeof m.model === 'string' && m.model ? { modelUsed: m.model } : {}),
 				...(usage
 					? {
@@ -253,11 +273,17 @@ export class SdkBridge implements PiBridge {
 		return live
 	}
 
-	prompt(tabId: string, text: string): void {
+	prompt(tabId: string, text: string, images?: WireImage[]): void {
 		const live = this.require(tabId)
-		void live.session.prompt(text).catch((err) => {
-			console.error('[pi-desktop] prompt failed:', err)
-		})
+		void live.session
+			.prompt(text, {
+				...(images && images.length > 0
+					? { images: images.map((i) => ({ type: 'image' as const, data: i.data, mimeType: i.mimeType })) }
+					: {})
+			})
+			.catch((err) => {
+				console.error('[pi-desktop] prompt failed:', err)
+			})
 	}
 
 	steer(tabId: string, text: string): void {

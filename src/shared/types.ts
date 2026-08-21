@@ -11,6 +11,12 @@ export interface WireModelInfo {
 	reasoning: boolean
 }
 
+/** 跨 IPC 的图像附件（base64） */
+export interface WireImage {
+	data: string
+	mimeType: string
+}
+
 /** Snapshot of the active session, JSON-safe across IPC. */
 export interface WireSessionInfo {
 	tabId: string
@@ -34,6 +40,7 @@ export interface WireTranscriptItem {
 	status: 'streaming' | 'complete' | 'error' | 'aborted' | 'running'
 	usage?: WireItemUsage
 	modelUsed?: string
+	images?: WireImage[]
 	toolCallId?: string
 	toolName?: string
 	resultText?: string
@@ -74,7 +81,7 @@ export interface PiDesktopApi {
 	getAppInfo(): Promise<AppInfo>
 	selectWorkspace(): Promise<string | null>
 	listModels(): Promise<WireModelInfo[]>
-	prompt(text: string): Promise<void>
+	prompt(text: string, images?: WireImage[]): Promise<void>
 	steer(text: string): Promise<void>
 	abort(): Promise<void>
 	setModel(modelId: string): Promise<void>

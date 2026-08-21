@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useActiveTab, useSessionStore } from '../store/session-store'
-import type { WireThinkingLevel } from '../../../shared/types'
+import type { WireImage, WireThinkingLevel } from '../../../shared/types'
 
 const THINKING_LABEL: Record<WireThinkingLevel, string> = {
 	minimal: '关',
@@ -123,6 +123,8 @@ export function Composer() {
 	const setText = useSessionStore((s) => s.setDraft)
 	const editSignal = useSessionStore((s) => s.tabs.find((t) => t.tabId === s.activeTabId)?.editSignal ?? 0)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const fileRef = useRef<HTMLInputElement>(null)
+	const [pendingImages, setPendingImages] = useState<WireImage[]>([])
 
 	// 「编辑」回填后聚焦输入框
 	useEffect(() => {
@@ -131,16 +133,34 @@ export function Composer() {
 
 	const busy = tab?.busy ?? false
 
+	const addFiles = async (files: FileList | File[]) => {
+		const imgs: WireImage[] = []
+		for (const f of Array.from(files)) {
+			if (!f.type.startsWith('image/')) continue
+			if (f.size > 8 * 1024 * 1024) continue // 8MB 上限，控制 IPC 体积
+			const buf = await f.arrayBuffer()
+			const bytes = new Uint8Array(buf)
+			let bin = ''
+			for (let i = 0; i < bytes.length; i += 0x8000) {
+				bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+			}
+			imgs.push({ data: btoa(bin), mimeType: f.type })
+		}
+		if (imgs.length > 0) setPendingImages((cur) => [...cur, ...imgs].slice(0, 8))
+	}
+
 	const submit = async () => {
 		const value = text.trim()
-		if (!value || !tab) return
+		if ((!value && pendingImages.length === 0) || !tab) return
+		const images = pendingImages
 		setText('')
+		setPendingImages([])
 		if (busy) {
 			await window.piDesktop.steer(value)
 			sendPrompt(`（steer）${value}`)
 		} else {
-			sendPrompt(value)
-			await window.piDesktop.prompt(value)
+			sendPrompt(value, images)
+			await window.piDesktop.prompt(value, images)
 		}
 		textareaRef.current?.focus()
 	}
@@ -152,8 +172,41 @@ export function Composer() {
 		}
 	}
 
+	const onPaste = (e: React.ClipboardEvent) => {
+		const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'))
+		if (files.length > 0) {
+			e.preventDefault()
+			void addFiles(files)
+		}
+	}
+
 	return (
-		<div className="composer">
+		<div
+			className="composer"
+			onDragOver={(e) => {
+				e.preventDefault()
+			}}
+			onDrop={(e) => {
+				e.preventDefault()
+				if (e.dataTransfer.files.length > 0) void addFiles(e.dataTransfer.files)
+			}}
+		>
+			{pendingImages.length > 0 && (
+				<div className="composer-attachments">
+					{pendingImages.map((img, i) => (
+						<span key={i} className="attach-thumb">
+							<img src={`data:${img.mimeType};base64,${img.data}`} alt="待发送图片" />
+							<button
+								type="button"
+								className="attach-remove"
+								onClick={() => setPendingImages((cur) => cur.filter((_, j) => j !== i))}
+							>
+								✕
+							</button>
+						</span>
+					))}
+				</div>
+			)}
 			<textarea
 				ref={textareaRef}
 				className="composer-input"
@@ -161,12 +214,13 @@ export function Composer() {
 					tab
 						? busy
 							? '运行中输入可追加指令（steer），Enter 发送'
-							: '给 pi 发送消息，Enter 发送，Shift+Enter 换行'
+							: '给 pi 发送消息，Enter 发送，Shift+Enter 换行；可粘贴/拖入图片'
 						: '打开工作区或选择左侧会话开始'
 				}
 				value={text}
 				onChange={(e) => setText(e.target.value)}
 				onKeyDown={onKeyDown}
+				onPaste={onPaste}
 				rows={3}
 				disabled={!tab}
 			/>
@@ -177,6 +231,26 @@ export function Composer() {
 						: ''}
 				</span>
 				<div className="composer-controls">
+					<button
+						type="button"
+						className="attach-btn"
+						title="添加图片（模型需支持视觉输入）"
+						disabled={!tab}
+						onClick={() => fileRef.current?.click()}
+					>
+						🖼
+					</button>
+					<input
+						ref={fileRef}
+						type="file"
+						accept="image/*"
+						multiple
+						style={{ display: 'none' }}
+						onChange={(e) => {
+							if (e.target.files) void addFiles(e.target.files)
+							e.target.value = ''
+						}}
+					/>
 					<ModelChip />
 					<ThinkingChip />
 					{busy ? (
