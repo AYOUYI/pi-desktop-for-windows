@@ -9,7 +9,7 @@ publish:
   repo: pi-desktop-for-windows
 
 directories:
-  output: release2
+  output: release
   buildResources: build
 
 files:
@@ -38,6 +38,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Pi Desktop
+  # 安装包文件名不带空格，避免 CI 上传 glob 匹配问题
+  artifactName: Pi.Desktop.Setup.${version}.${ext}
 
 # 国内网络走镜像拉取 Electron 运行时
 electronDownload:
