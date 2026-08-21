@@ -1,8 +1,11 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * 全屏图片预览：点击任意位置或按 Esc 关闭，右上角提供 ✕。
- * 打开期间压制原生浏览器视图（原生层渲染在页面之上，会遮挡并吞掉点击）。
+ * 通过 Portal 渲染到 document.body——虚拟列表的行用 transform 定位，
+ * 会把 position:fixed 俘虏成相对行定位，导致遮罩错位/文本穿透。
+ * 打开期间压制原生浏览器视图（原生层渲染在页面之上）。
  */
 export function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 	useEffect(() => {
@@ -17,7 +20,7 @@ export function Lightbox({ src, onClose }: { src: string; onClose: () => void })
 		}
 	}, [onClose])
 
-	return (
+	return createPortal(
 		<div className="lightbox" onClick={onClose}>
 			<img src={src} alt="预览" />
 			<button
@@ -31,6 +34,7 @@ export function Lightbox({ src, onClose }: { src: string; onClose: () => void })
 			>
 				✕
 			</button>
-		</div>
+		</div>,
+		document.body
 	)
 }
