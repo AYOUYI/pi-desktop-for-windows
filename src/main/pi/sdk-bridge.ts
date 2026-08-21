@@ -85,8 +85,13 @@ function transcriptFromMessages(messages: unknown[]): WireTranscriptItem[] {
 					: {})
 			})
 		} else if (m.role === 'toolResult') {
-			const resultText =
+			const rawResultText =
 				typeof m.content === 'string' ? m.content : joinType('text', 'text')
+			// 回放截断巨型工具结果，防止大 JSONL 拖垮渲染
+			const resultText =
+				rawResultText.length > 64 * 1024
+					? rawResultText.slice(0, 64 * 1024) + '\n…（输出过长已截断，共 ' + rawResultText.length + ' 字符）'
+					: rawResultText
 			const contentImages = Array.isArray(m.content)
 				? (m.content as Array<Record<string, unknown>>)
 						.filter((b) => b?.type === 'image' && typeof b.data === 'string' && typeof b.mimeType === 'string')

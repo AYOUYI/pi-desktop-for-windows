@@ -159,6 +159,13 @@ function extractUsage(message: unknown): ItemUsage | undefined {
 	}
 }
 
+/** 工具结果文本显示上限，防止巨型输出（如误读二进制/图片）拖垮渲染 */
+const TOOL_TEXT_CAP = 64 * 1024
+function capToolText(text: string): string {
+	if (text.length <= TOOL_TEXT_CAP) return text
+	return `${text.slice(0, TOOL_TEXT_CAP)}\n…（输出过长已截断，共 ${text.length} 字符）`
+}
+
 function extractDetailImages(result: unknown): WireImage[] | undefined {
 	if (!result || typeof result !== 'object') return undefined
 	const details = (result as { details?: unknown }).details
@@ -731,10 +738,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
 			case 'tool_execution_update': {
 				const e = event as { toolCallId: string; partialResult: unknown }
+				const liveText = capToolText(extractText(e.partialResult) || String(e.partialResult ?? ''))
 				updateItems((items) =>
 					items.map((it) =>
 						it.kind === 'tool' && it.toolCallId === e.toolCallId
-							? { ...it, resultText: extractText(e.partialResult) || String(e.partialResult ?? '') }
+							? { ...it, resultText: liveText }
 							: it
 					)
 				)
@@ -743,15 +751,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
 			case 'tool_execution_end': {
 				const e = event as { toolCallId: string; result: unknown; isError: boolean }
-				const resultText =
+				const resultText = capToolText(
 					extractText(e.result) ||
-					(() => {
-						try {
-							return JSON.stringify(e.result)
-						} catch {
-							return ''
-						}
-					})()
+						(() => {
+							try {
+								return JSON.stringify(e.result)
+							} catch {
+								return ''
+							}
+						})()
+				)
 				const patch = extractPatch(e.result)
 				const exitCode = extractExitCode(e.result)
 				const resultImages = extractImages(e.result) ?? extractDetailImages(e.result)

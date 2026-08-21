@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useSessionStore, type ChatItem } from '../store/session-store'
@@ -43,20 +43,18 @@ function splitThink(text: string): { think: string; body: string } {
 /**
  * 部分中转把思考内容同时发进 thinking 和 text 两个通道，正文会重复一遍。
  * 当正文前缀与思考内容一致时，把重复部分从正文剥掉（保留其后的最终回答）。
+ * 快速路径先做原样前缀比对（流式高频调用，避免每次都做正则归一化）。
  */
 function dedupeThinking(thinking: string, body: string): string {
 	if (!thinking || !body) return body
+	if (thinking.length > 200_000) return body // 超长内容跳过去重，保证流式性能
 	if (body.startsWith(thinking)) return body.slice(thinking.length).trim()
 	if (thinking.startsWith(body)) return ''
 	const nt = thinking.replace(/\s+/g, ' ').trim()
 	const nb = body.replace(/\s+/g, ' ').trim()
-	if (!nt || !nb) return body
-	if (nb.startsWith(nt)) {
-		const ratio = body.length / Math.max(1, nb.length)
-		return body.slice(Math.round(nt.length * ratio)).trim()
-	}
-	if (nt.startsWith(nb)) return ''
-	return body
+	if (!nt || !nb || !nb.startsWith(nt)) return body
+	const ratio = body.length / Math.max(1, nb.length)
+	return body.slice(Math.round(nt.length * ratio)).trim()
 }
 
 function MsgActions({ item, text }: { item: ChatItem; text?: string }) {
@@ -110,6 +108,14 @@ const markdownComponents = {
 }
 
 export function MessageBubble({ item }: { item: ChatItem }) {
+	// 思考净化/去重按内容记忆化，流式 delta 高频重渲染下避免重复全文扫描
+	const display = useMemo(() => {
+		if (item.kind !== 'assistant') return null
+		const { think: inlineThink, body: tagCleaned } = splitThink(item.text)
+		const merged = [item.thinking, inlineThink].filter(Boolean).join('\n')
+		return { thinking: merged, body: dedupeThinking(merged, tagCleaned) }
+	}, [item.kind, item.text, item.thinking])
+
 	if (item.kind === 'user') {
 		return (
 			<div className="msg msg-user">
@@ -128,9 +134,8 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 	}
 
 	if (item.kind === 'assistant') {
-		const { think: inlineThink, body: tagCleaned } = splitThink(item.text)
-		const thinking = [item.thinking, inlineThink].filter(Boolean).join('\n')
-		const body = dedupeThinking(thinking, tagCleaned)
+		const thinking = display?.thinking ?? ''
+		const body = display?.body ?? item.text
 		return (
 			<div className="msg msg-assistant">
 				<div className="msg-role">
