@@ -40,6 +40,25 @@ function splitThink(text: string): { think: string; body: string } {
 	return { think: think.trim(), body: body.trim() }
 }
 
+/**
+ * 部分中转把思考内容同时发进 thinking 和 text 两个通道，正文会重复一遍。
+ * 当正文前缀与思考内容一致时，把重复部分从正文剥掉（保留其后的最终回答）。
+ */
+function dedupeThinking(thinking: string, body: string): string {
+	if (!thinking || !body) return body
+	if (body.startsWith(thinking)) return body.slice(thinking.length).trim()
+	if (thinking.startsWith(body)) return ''
+	const nt = thinking.replace(/\s+/g, ' ').trim()
+	const nb = body.replace(/\s+/g, ' ').trim()
+	if (!nt || !nb) return body
+	if (nb.startsWith(nt)) {
+		const ratio = body.length / Math.max(1, nb.length)
+		return body.slice(Math.round(nt.length * ratio)).trim()
+	}
+	if (nt.startsWith(nb)) return ''
+	return body
+}
+
 function MsgActions({ item, text }: { item: ChatItem; text?: string }) {
 	const [copied, setCopied] = useState(false)
 	const editIntoComposer = useSessionStore((s) => s.editIntoComposer)
@@ -109,8 +128,9 @@ export function MessageBubble({ item }: { item: ChatItem }) {
 	}
 
 	if (item.kind === 'assistant') {
-		const { think: inlineThink, body } = splitThink(item.text)
+		const { think: inlineThink, body: tagCleaned } = splitThink(item.text)
 		const thinking = [item.thinking, inlineThink].filter(Boolean).join('\n')
+		const body = dedupeThinking(thinking, tagCleaned)
 		return (
 			<div className="msg msg-assistant">
 				<div className="msg-role">
