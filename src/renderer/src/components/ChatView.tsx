@@ -3,6 +3,7 @@ import { VList, type VListHandle } from 'virtua'
 import { useActiveTab, useSessionStore, type ChatItem } from '../store/session-store'
 import { MessageBubble } from './MessageBubble'
 import { ToolCard } from './ToolCard'
+import { Lightbox } from './Lightbox'
 
 const BOTTOM_THRESHOLD = 48
 
@@ -30,11 +31,7 @@ function ShowImageMessage({ item }: { item: ChatItem }) {
 				/>
 			))}
 			{caption && <div className="show-image-caption">{name}</div>}
-			{zoom && (
-				<div className="lightbox" onClick={() => setZoom(null)}>
-					<img src={zoom} alt="预览" onClick={(e) => e.stopPropagation()} />
-				</div>
-			)}
+			{zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
 		</div>
 	)
 }

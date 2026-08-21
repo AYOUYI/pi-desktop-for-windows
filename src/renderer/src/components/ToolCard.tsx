@@ -2,14 +2,7 @@ import { useMemo, useState } from 'react'
 import { createPatch } from 'diff'
 import { useActiveTab, type ChatItem } from '../store/session-store'
 import { DiffView } from './DiffView'
-
-function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
-	return (
-		<div className="lightbox" onClick={onClose}>
-			<img src={src} alt="预览" onClick={(e) => e.stopPropagation()} />
-		</div>
-	)
-}
+import { Lightbox } from './Lightbox'
 
 const TOOL_STATUS_LABEL: Record<string, string> = {
 	running: '运行中',

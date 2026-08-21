@@ -555,6 +555,27 @@ html[data-bg='on'][data-theme='light'] {
 	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
+.lightbox-close {
+	position: fixed;
+	top: 22px;
+	right: 26px;
+	width: 40px;
+	height: 40px;
+	border: none;
+	border-radius: 50%;
+	background: rgba(20, 20, 26, 0.7);
+	color: #fff;
+	font-size: 17px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.lightbox-close:hover {
+	background: var(--danger);
+}
+
 /* ---------- Chips (model/thinking selectors + git stats) ---------- */
 
 .composer-meta {
