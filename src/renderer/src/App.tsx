@@ -74,6 +74,15 @@ export function App() {
 		void window.piDesktop.browserSetSuppressed(settingsOpen)
 	}, [settingsOpen])
 
+	// 全局订阅浏览器状态：agent 调 browser_* 自动打开面板时，
+	// 渲染端必须感知（订阅不能放在 BrowserPanel 内——面板未挂载时收不到推送）
+	useEffect(() => {
+		const off = window.piDesktop.browserOnState((state) => {
+			useSessionStore.getState().setBrowserState(state)
+		})
+		return off
+	}, [])
+
 	useEffect(() => {
 		const off = window.piDesktop.onPiEvent((payload) => {
 			applyEvent(payload.tabId, payload.event)

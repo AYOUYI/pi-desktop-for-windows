@@ -27,14 +27,6 @@ export function BrowserPanel() {
 	const tabs = useSessionStore((s) => s.browserTabs)
 	const activeTabId = useSessionStore((s) => s.browserActiveTabId)
 
-	// 订阅主进程浏览器状态（标签增删/切换/导航）
-	useEffect(() => {
-		const off = window.piDesktop.browserOnState((state) => {
-			useSessionStore.getState().setBrowserState(state)
-		})
-		return off
-	}, [])
-
 	// 活动标签变化时同步地址栏
 	useEffect(() => {
 		const active = tabs.find((t) => t.id === activeTabId)
