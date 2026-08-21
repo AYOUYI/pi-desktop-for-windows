@@ -693,7 +693,28 @@ html[data-bg='on'][data-theme='light'] {
 .about-dev {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: 14px;
+}
+
+.about-dev-main {
+	flex: 1;
+	min-width: 0;
+}
+
+.about-qr-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.about-qr {
+	width: 72px;
+	height: 72px;
+	object-fit: cover;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	cursor: zoom-in;
 }
 
 .about-dev-avatar {

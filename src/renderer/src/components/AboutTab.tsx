@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSessionStore } from '../store/session-store'
+import { Lightbox } from './Lightbox'
+import wechatQr from '../assets/wechat-qr.jpg'
 import type { AppInfo, WireAppBehavior } from '../../../shared/types'
 
 const REPO_URL = 'https://github.com/AYOUYI/pi-desktop-for-windows'
@@ -10,6 +12,7 @@ const PI_URL = 'https://github.com/earendil-works/pi'
 export function AboutTab() {
 	const [info, setInfo] = useState<AppInfo | null>(null)
 	const [behavior, setBehavior] = useState<WireAppBehavior | null>(null)
+	const [qrOpen, setQrOpen] = useState(false)
 	const update = useSessionStore((s) => s.update)
 
 	useEffect(() => {
@@ -104,14 +107,25 @@ export function AboutTab() {
 				<div className="about-section-title">开发者</div>
 				<div className="about-dev">
 					<div className="about-dev-avatar">A</div>
-					<div>
-						<div className="about-dev-name">AYOUYI</div>
-						<div className="about-slogan">独立开发者 · 本项目由 AI 协作完成</div>
+					<div className="about-dev-main">
+						<div className="about-dev-name">AARON</div>
+						<div className="about-slogan">中国大陆 · 北京 · 独立开发者</div>
+					</div>
+					<div className="about-qr-wrap">
+						<img
+							className="about-qr"
+							src={wechatQr}
+							alt="微信二维码"
+							title="点击放大，扫码加微信"
+							onClick={() => setQrOpen(true)}
+						/>
+						<span className="about-slogan">微信联系我</span>
 					</div>
 					<button type="button" className="btn-ghost" onClick={() => open(DEV_URL)}>
 						GitHub 主页
 					</button>
 				</div>
+				{qrOpen && <Lightbox src={wechatQr} onClose={() => setQrOpen(false)} />}
 			</div>
 
 			<div className="about-license">MIT License · 依赖 pi（MIT, Copyright Earendil Works）</div>
