@@ -4,6 +4,7 @@ import type {
 	WireGitStats,
 	WireImage,
 	WireModelInfo,
+	WireUpdateState,
 	WireSessionInfo,
 	WireThinkingLevel,
 	WireWorkspaceGroup,
@@ -83,7 +84,7 @@ interface SessionStore {
 	/** 全局待发送图片附件（拖放到窗口任意处/按钮选择共用） */
 	attachments: WireImage[]
 	/** 应用内更新状态 */
-	update: { status: 'idle' } | { status: 'downloading'; percent?: number; version?: string } | { status: 'ready'; version?: string } | { status: 'error'; message?: string }
+	update: WireUpdateState
 
 	setReady(ready: boolean): void
 	setNotice(notice: string | null): void
@@ -94,7 +95,7 @@ interface SessionStore {
 	removeAttachment(index: number): void
 	setBrowserOpen(open: boolean): Promise<void>
 	setBrowserState(state: WireBrowserState): void
-	setUpdate(state: { status: 'idle' } | { status: 'downloading'; percent?: number; version?: string } | { status: 'ready'; version?: string } | { status: 'error'; message?: string }): void
+	setUpdate(state: WireUpdateState): void
 	loadWorkspaces(): Promise<void>
 	refreshGitStats(): Promise<void>
 	createTab(cwd: string): Promise<void>

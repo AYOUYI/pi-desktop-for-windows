@@ -33,9 +33,9 @@ function behaviorPath(): string {
 function loadBehavior(): WireAppBehavior {
 	try {
 		const parsed = JSON.parse(readFileSync(behaviorPath(), 'utf-8')) as Partial<WireAppBehavior>
-		return { closeToTray: parsed.closeToTray === true }
+		return { closeToTray: parsed.closeToTray === true, autoUpdateCheck: parsed.autoUpdateCheck !== false }
 	} catch {
-		return { closeToTray: false }
+		return { closeToTray: false, autoUpdateCheck: true }
 	}
 }
 
@@ -319,6 +319,9 @@ async function bootstrap(): Promise<void> {
 	createTray()
 
 	// ---- 应用内自动更新（GitHub Releases，feed 配置内置于打包产物） ----
+	ipcMain.handle('update:install', () => {
+		// 占位：打包版启动时会重新注册真实实现
+	})
 	if (app.isPackaged) {
 		try {
 			const { autoUpdater } = await import('electron-updater')
@@ -327,23 +330,39 @@ async function bootstrap(): Promise<void> {
 			const send = (channel: string, payload: unknown) => {
 				mainWindow?.webContents.send(channel, payload)
 			}
+			autoUpdater.on('checking-for-update', () => send('update:event', { status: 'checking' }))
 			autoUpdater.on('update-available', (info) => send('update:event', { status: 'downloading', version: info.version }))
+			autoUpdater.on('update-not-available', () => send('update:event', { status: 'latest' }))
 			autoUpdater.on('download-progress', (p) => send('update:event', { status: 'downloading', percent: Math.round(p.percent) }))
 			autoUpdater.on('update-downloaded', (info) => send('update:event', { status: 'ready', version: info.version }))
 			autoUpdater.on('error', (err) => {
 				console.warn('[pi-desktop] updater:', err.message)
 				send('update:event', { status: 'error', message: err.message })
 			})
+			ipcMain.removeHandler('update:install')
 			ipcMain.handle('update:install', () => {
 				autoUpdater.quitAndInstall()
 			})
-			// 启动 15 秒后首查，之后每 4 小时复查
-			const check = () => void autoUpdater.checkForUpdates().catch(() => {})
+			ipcMain.handle('update:check', () => {
+				void autoUpdater.checkForUpdates().catch(() => {})
+			})
+			// 启动 15 秒后首查，之后每 4 小时复查（可在 设置→关于 关闭）
+			const check = () => {
+				if (loadBehavior().autoUpdateCheck) void autoUpdater.checkForUpdates().catch(() => {})
+			}
 			setTimeout(check, 15_000)
 			setInterval(check, 4 * 60 * 60 * 1000)
 		} catch (err) {
 			console.warn('[pi-desktop] auto-update disabled:', err)
 		}
+	} else {
+		// 开发模式：检查更新不可用
+		ipcMain.handle('update:check', () => {
+			mainWindow?.webContents.send('update:event', {
+				status: 'error',
+				message: '开发模式不支持检查更新（仅安装版可用）'
+			})
+		})
 	}
 }
 

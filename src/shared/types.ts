@@ -112,6 +112,7 @@ export interface PiDesktopApi {
 	themePickBackground(): Promise<{ name: string } | null>
 	themeClearBackground(): Promise<void>
 	onUpdateEvent(cb: (state: WireUpdateState) => void): () => void
+	checkUpdate(): Promise<void>
 	installUpdate(): Promise<void>
 
 	// ---- Settings ----
@@ -130,6 +131,7 @@ export interface PiDesktopApi {
 /** 应用自身行为设置（与 pi 配置无关，存于 Electron userData）。 */
 export interface WireAppBehavior {
 	closeToTray: boolean
+	autoUpdateCheck: boolean
 }
 
 export interface WireBrowserTab {
@@ -146,7 +148,7 @@ export interface WireBrowserState {
 
 /** 应用内更新状态（electron-updater 事件流）。 */
 export interface WireUpdateState {
-	status: 'downloading' | 'ready' | 'error'
+	status: 'idle' | 'checking' | 'downloading' | 'ready' | 'latest' | 'error'
 	version?: string
 	percent?: number
 	message?: string

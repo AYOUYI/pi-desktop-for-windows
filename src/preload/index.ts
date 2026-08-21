@@ -67,6 +67,7 @@ const api: PiDesktopApi = {
 		return () => ipcRenderer.removeListener('update:event', listener)
 	},
 	installUpdate: () => ipcRenderer.invoke('update:install'),
+	checkUpdate: () => ipcRenderer.invoke('update:check'),
 	setAppBehavior: (patch: Partial<WireAppBehavior>) =>
 		ipcRenderer.invoke('app:setBehavior', patch) as Promise<WireAppBehavior>,
 

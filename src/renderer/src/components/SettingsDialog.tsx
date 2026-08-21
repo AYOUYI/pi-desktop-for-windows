@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSessionStore } from '../store/session-store'
 import { ACCENTS, applyPrefs, loadPrefs, savePrefs, type AccentKey, type ThemePrefs } from '../lib/theme'
 import { getHiddenWorkspaces, setHiddenWorkspaces, onHiddenWorkspacesChanged } from '../lib/hidden-workspaces'
+import { AboutTab } from './AboutTab'
 import type {
 	WireCustomProviderModel,
 	WireCustomProviderRequest,
@@ -11,14 +12,15 @@ import type {
 	WireSkillInfo
 } from '../../../shared/types'
 
-type TabKey = 'general' | 'providers' | 'appearance' | 'skills' | 'extensions'
+type TabKey = 'general' | 'providers' | 'appearance' | 'skills' | 'extensions' | 'about'
 
 const TABS: { key: TabKey; label: string }[] = [
 	{ key: 'general', label: '通用' },
 	{ key: 'providers', label: '模型供应商' },
 	{ key: 'appearance', label: '界面' },
 	{ key: 'skills', label: '技能' },
-	{ key: 'extensions', label: '扩展' }
+	{ key: 'extensions', label: '扩展' },
+	{ key: 'about', label: '关于我们' }
 ]
 
 function errMsg(err: unknown): string {
@@ -369,13 +371,8 @@ function CustomProviderForm({ onDone }: { onDone: () => void }) {
 
 function AppearanceTab() {
 	const [prefs, setPrefs] = useState<ThemePrefs>(() => loadPrefs())
-	const [behavior, setBehavior] = useState<{ closeToTray: boolean } | null>(null)
 	const [hidden, setHidden] = useState<string[]>([])
 	const workspaces = useSessionStore((s) => s.workspaces)
-
-	useEffect(() => {
-		void window.piDesktop.getAppBehavior().then(setBehavior)
-	}, [])
 
 	useEffect(() => {
 		setHidden(getHiddenWorkspaces())
@@ -387,11 +384,6 @@ function AppearanceTab() {
 		setPrefs(next)
 		applyPrefs(next)
 		savePrefs(next)
-	}
-
-	const updateBehavior = async (patch: Partial<{ closeToTray: boolean }>) => {
-		const next = await window.piDesktop.setAppBehavior(patch)
-		setBehavior(next)
 	}
 
 	const pickBg = async () => {
@@ -480,19 +472,6 @@ function AppearanceTab() {
 				)}
 				<div className="settings-hint">背景图存储在本机（Electron userData/bg），主界面面板呈半透明毛玻璃效果。</div>
 			</div>
-			{behavior && (
-				<label className="field">
-					<span className="field-label">窗口行为</span>
-					<label className="check-row">
-						<input
-							type="checkbox"
-							checked={behavior.closeToTray}
-							onChange={(e) => void updateBehavior({ closeToTray: e.target.checked })}
-						/>
-						<span>关闭按钮最小化到系统托盘（取消勾选则直接退出）</span>
-					</label>
-				</label>
-			)}
 			{hiddenGroups.length > 0 && (
 				<div className="field">
 					<span className="field-label">已隐藏的工作区</span>
@@ -644,6 +623,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
 						{tab === 'appearance' && <AppearanceTab />}
 						{tab === 'skills' && <SkillsTab />}
 						{tab === 'extensions' && <ExtensionsTab />}
+					{tab === 'about' && <AboutTab />}
 					</div>
 				</div>
 			</div>
